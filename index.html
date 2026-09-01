@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Donut &amp; Manservant</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      :root {
+        --ink: #0a0a0a;
+        --paper: #f4ecd8;
+        --carl: #ffb000;
+        --donut: #ff3d6e;
+        --magic: #6effff;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--ink);
+        color: var(--paper);
+        font-family: 'Courier New', monospace;
+        overflow: hidden;
+        height: 100%;
+      }
+      #game {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      canvas {
+        image-rendering: pixelated;
+        box-shadow: 0 0 40px rgba(110, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
