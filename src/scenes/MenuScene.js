@@ -276,7 +276,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // ----- Footer -----
-    this.add.text(W - 24, H - 24, 'v0.1 • CC0 art • Phaser 3', {
+    this.add.text(W - 24, H - 24, 'v1.1 • CC0 art • Phaser 3', {
       fontFamily: '"Courier New", monospace',
       fontSize: '10px',
       color: '#6e4828',

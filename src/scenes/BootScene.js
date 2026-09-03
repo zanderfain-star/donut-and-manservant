@@ -1234,6 +1234,157 @@ export class BootScene extends Phaser.Scene {
       g.strokeCircle(84, 72, 24);
     });
 
+    // bg_car (F4 interior): ride INSIDE the Nightmare Express. Ceiling
+    // lights + straps, window band with tunnel streaks, seat backs, map.
+    // STREAMS via tilePositionX — the streaks sell the speed.
+    this.stamp(['bg_car'], 1024, 720, (g) => {
+      // ceiling
+      g.fillStyle(0x1a1a24, 1);
+      g.fillRect(0, 0, 1024, 120);
+      g.fillStyle(0xfff2b0, 1);
+      for (let x = 40; x < 1024; x += 128) {
+        g.fillRoundedRect(x, 18, 64, 14, 6);
+        g.fillStyle(0xffc93d, 0.3);
+        g.fillEllipse(x + 32, 60, 90, 50);
+        g.fillStyle(0xfff2b0, 1);
+      }
+      // hanging straps
+      g.fillStyle(0x3a3a4a, 1);
+      for (let x = 100; x < 1024; x += 160) {
+        g.fillRect(x, 32, 6, 34);
+        g.fillCircle(x + 3, 74, 9);
+      }
+      g.lineStyle(2, INK, 1);
+      for (let x = 100; x < 1024; x += 160) g.strokeCircle(x + 3, 74, 9);
+      // window band: dark glass + rushing light streaks
+      g.fillStyle(0x101018, 1);
+      g.fillRect(0, 130, 1024, 200);
+      for (let x = 20; x < 1024; x += 170) {
+        g.fillStyle(0x05050c, 1);
+        g.fillRoundedRect(x, 145, 130, 170, 8);
+        // tunnel lamps whipping past (horizontal streaks)
+        g.fillStyle(0xfff2b0, 1);
+        g.fillRect(x + 8, 180 + (x % 3) * 22, 46, 5);
+        g.fillRect(x + 60, 230 - (x % 3) * 14, 56, 5);
+        g.fillStyle(0xff7a30, 0.8);
+        g.fillRect(x + 8, 260, 70, 4);
+        g.lineStyle(3, 0x3a3f4a, 1);
+        g.strokeRoundedRect(x, 145, 130, 170, 8);
+      }
+      // wall panels + RED LINE map strip
+      g.fillStyle(0x23232e, 1);
+      g.fillRect(0, 330, 1024, 130);
+      g.lineStyle(2, 0x14141c, 1);
+      for (let x = 0; x <= 1024; x += 128) g.lineBetween(x, 330, x, 460);
+      g.fillStyle(0xf4ecd8, 1);
+      g.fillRect(0, 380, 1024, 34);
+      g.fillStyle(0xe02020, 1);
+      g.fillRect(0, 392, 1024, 6);
+      g.fillStyle(0x14101a, 1);
+      for (let x = 30; x < 1024; x += 90) g.fillCircle(x, 397, 5);
+      g.fillStyle(0x14101a, 1);
+      g.fillRect(430, 384, 150, 26);
+      g.fillStyle(0xffc93d, 1);
+      g.fillRect(440, 390, 10, 10);
+      g.fillRect(560, 390, 10, 10);
+      // seat backs row (silhouettes along the bottom)
+      g.fillStyle(0x2e1a3a, 1);
+      for (let x = 10; x < 1024; x += 150) {
+        g.fillRoundedRect(x, 500, 110, 120, 12);
+        g.fillStyle(0x4a2a5a, 1);
+        g.fillRect(x + 10, 510, 90, 8);
+        g.fillStyle(0x2e1a3a, 1);
+      }
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(0, 460, 1024, 460);
+    });
+
+    // car_floor (F4): dark car carpet + yellow safety edge.
+    this.stamp(['car_floor'], 96, 64, (g) => {
+      g.fillStyle(0x26262e, 1);
+      g.fillRect(0, 0, 96, 64);
+      g.fillStyle(0x30303a, 1);
+      for (let i = 0; i < 30; i++) {
+        g.fillRect((i * 37) % 96, (i * 53) % 64, 3, 3);
+      }
+      g.fillStyle(0x1a1a20, 1);
+      g.fillRect(0, 0, 96, 8);
+      g.fillStyle(0xffc93d, 1);
+      g.fillRect(0, 10, 96, 4);
+      g.fillStyle(0xffc93d, 0.7);
+      for (let hx = 2; hx < 96; hx += 12) {
+        g.fillTriangle(hx, 56, hx + 6, 56, hx + 3, 61);
+      }
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(0, 8, 96, 8);
+    });
+
+    // Training dummy "Jeff" (F5): straw + post. Hits show HP pips. 56x64.
+    this.stamp(['dummy'], 56, 64, (g) => {
+      // post
+      g.fillStyle(0x4a2e18, 1);
+      g.fillRect(24, 20, 8, 44);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(24, 20, 24, 64);
+      g.lineBetween(32, 20, 32, 64);
+      // crossbar arms
+      g.fillStyle(0x4a2e18, 1);
+      g.fillRect(10, 26, 36, 7);
+      g.lineStyle(2, INK, 1);
+      g.strokeRect(10, 26, 36, 7);
+      // straw body
+      g.fillStyle(0xd8b060, 1);
+      g.fillRoundedRect(16, 34, 24, 24, 6);
+      g.fillStyle(0xb08840, 1);
+      for (const [sx, sy] of [[20, 40], [30, 44], [24, 50], [33, 52]]) {
+        g.lineBetween(sx, sy, sx + 4, sy + 3);
+      }
+      // straw head + stitched face
+      g.fillStyle(0xd8b060, 1);
+      g.fillCircle(28, 22, 11);
+      g.fillStyle(INK, 1);
+      g.fillCircle(24, 20, 1.8);
+      g.fillCircle(32, 20, 1.8);
+      g.lineBetween(23, 27, 33, 27);
+      g.lineBetween(23, 27, 25, 25);
+      g.lineBetween(33, 27, 31, 25);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(28, 22, 11);
+      g.strokeRoundedRect(16, 34, 24, 24, 6);
+      // stuffing poking out
+      g.lineStyle(2, 0xd8b060, 1);
+      g.lineBetween(16, 40, 10, 36);
+      g.lineBetween(40, 46, 46, 42);
+    });
+
+    // Pedestal (F5 test ground): stone plinth for tryable power-ups. 48x64.
+    this.stamp(['pedestal'], 48, 64, (g) => {
+      // glow bed
+      g.fillStyle(0x4df3ff, 0.25);
+      g.fillEllipse(24, 50, 40, 14);
+      // plinth
+      g.fillStyle(0x5a5a6a, 1);
+      g.fillRoundedRect(10, 30, 28, 30, 3);
+      g.fillStyle(0x3a3a46, 1);
+      g.fillRect(10, 30, 28, 6);
+      g.fillStyle(0xffffff, 0.35);
+      g.fillRect(12, 38, 5, 18);
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(10, 30, 28, 30, 3);
+      // cap stone
+      g.fillStyle(0x6a6a7a, 1);
+      g.fillRoundedRect(6, 22, 36, 10, 3);
+      g.lineStyle(2, INK, 1);
+      g.strokeRoundedRect(6, 22, 36, 10, 3);
+      // floating rune shard above (tinted per power-up at spawn)
+      g.fillStyle(0xffffff, 1);
+      g.fillTriangle(24, 2, 30, 14, 18, 14);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(24, 2, 30, 14);
+      g.lineBetween(30, 14, 18, 14);
+      g.lineBetween(18, 14, 24, 2);
+    });
+
     // ---------------- FLOOR (96x64) ----------------
     // Warm brown rubble, CREAM 6px top lip + black edge. Reads at distance.
     this.stamp(['floor_tile'], 96, 64, (g) => {

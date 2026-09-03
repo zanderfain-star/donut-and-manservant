@@ -383,10 +383,48 @@ const FLOORS = {
       [8000, 'Something festering guards the stairs →'],
     ],
     worldW: 6400, endX: 6000,
-    bg: 'bg_tunnel', bgScroll: 0.5, floorTex: 'train_roof', platformTint: 0x9ab8d8,
+    bg: 'bg_car', bgScroll: 0.5, floorTex: 'car_floor', platformTint: 0x9ab8d8,
     stream: true,
     clearTitle: 'FLOOR 4 CLEARED!',
     clearSub: 'The dungeon shudders below… TO BE CONTINUED.',
+  },
+  5: {
+    // FLOOR 5: SAFE ROOM + DESPERADO CLUB — no fighting (except Jeff).
+    // Power-up test ground: pedestals grant experimental buffs, straw
+    // dummies respawn so Carl can feel the numbers. Stairs end the demo.
+    zones: [
+      { name: 'SAFE ROOM', x1: 0, x2: 1200, sub: 'No fighting. Except Jeff.', banner: 0x4df3ff, floor: 0xd8e8f0 },
+      { name: 'DESPERADO CLUB', x1: 1200, x2: 2400, sub: 'Try the specials', banner: 0xffb060, floor: 0xf0e0c8 },
+    ],
+    grades: [0x4d8ab8, 0xffb060],
+    checkpoints: [],
+    pits: [],
+    gates: [
+      { x: 1200, label: 'CLUB', color: 0xffb060 },
+    ],
+    platforms: [
+      [500, 540, 160, 8],
+      [1500, 540, 192, 8],
+    ],
+    spawns: [],
+    pickups: [],
+    boss: null,
+    tips: [
+      [1200, 'Welcome to the DESPERADO CLUB. Bopca keeps the bar.'],
+      [4500, 'Pedestals grant experimental buffs. Jeff volunteers.'],
+      [8000, 'Stairs at the far end when you are bored →'],
+    ],
+    pedestals: [
+      { x: 600, kind: 'boots', label: 'SWIFT BOOTS', color: 0x4df3ff },
+      { x: 900, kind: 'knuckles', label: 'BRASS+2', color: 0xffb000 },
+      { x: 1500, kind: 'overdrive', label: 'OVERDRIVE', color: 0xff5a20 },
+      { x: 1800, kind: 'quake', label: 'QUAKE', color: 0x7aff6a },
+    ],
+    dummies: [1050, 1400, 2100],
+    worldW: 2400, endX: 2000,
+    bg: 'bg_far', bgScroll: 0.2, floorTex: 'floor_tile', platformTint: 0xd8c8a8,
+    clearTitle: 'RESTED & READY!',
+    clearSub: 'The dungeon waits… Floor 6 someday.',
   },
 };
 
@@ -421,6 +459,8 @@ const ENEMY_TYPES = {
   tinker: { hp: 1, speed: 60, score: 75, scale: 0.95, tint: 0xffffff, label: 'TINKER', tex: 'enemy_tinker', feet: 26, body: [38, 46], off: [9, 8] },
   trog: { hp: 3, speed: 40, score: 150, scale: 1.45, tint: 0xffffff, label: 'TROG', tex: 'enemy_trog', feet: 34, body: [44, 60], off: [14, 10] },
   rat: { hp: 1, speed: 200, score: 40, scale: 0.8, tint: 0xffffff, label: 'RAT', tex: 'enemy_rat', feet: 24, body: [46, 22], off: [5, 30] },
+  // JEFF (F5 test dummy): straw, harmless, respawns, shows HP pips.
+  dummy: { hp: 6, speed: 0, score: 0, scale: 1.0, tint: 0xffffff, label: 'JEFF', tex: 'dummy', feet: 30, body: [36, 56], off: [10, 6] },
   // BALL OF SWINE — Floor 1 borough boss. Rolls the arena, max 2 dmg/hit.
   swine: { hp: 12, speed: 55, score: 1000, scale: 1.0, tint: 0xffffff, label: 'BALL OF SWINE', tex: 'boss_swine', feet: 58, body: [90, 100], off: [15, 18] },
   // RALPH — Floor 2 frenzied gerbil. Faster, frailer, same porkchop energy.
@@ -518,7 +558,9 @@ export class GameScene extends Phaser.Scene {
     // Starts at the floor's first LV ((floor-1)*3+1); each new zone levels
     // him up (see MONGO_LEVELS + mongoLevelUp()). Not yet met on Floor 0.
     this.corpses = [];
-    this.mongoLevel = Math.max(1, (this.floor - 1) * 3 + 1);
+    this.mongoLevel = Math.min(MONGO_LEVELS.length, Math.max(1, (this.floor - 1) * 3 + 1));
+    // Test-ground buffs (F5 pedestals): reset every floor.
+    this.buffs = { speed: 1, punchReach: 0, manaFreeUntil: 0, stompMul: 1 };
     // Floor 0 is before they meet Mongo — he joins on Floor 1.
     this.mongo = this.floor === 0 ? null
       : this.add.image(this.player.x - 80, FLOOR_Y - 22, 'mongo').setDepth(22);
@@ -592,6 +634,17 @@ export class GameScene extends Phaser.Scene {
 
     this.pickups = this.physics.add.group({ runChildUpdate: false });
     this.spawnPickups();
+
+    // Floor 5 test ground: room decor, buff pedestals, respawning Jefferies.
+    if (this.floor === 5) {
+      this.buildSafeRoom();
+      this.spawnPedestals();
+      for (const dx of (FLOORS[5].dummies || [])) this.spawnDummy(dx, true);
+      this.time.addEvent({
+        delay: 2000, loop: true,
+        callback: () => this.restockDummies(),
+      });
+    }
 
     // ----- KILL ZONES (pits) -----
     this.player.setCollideWorldBounds(false, false, false, false);
@@ -1020,7 +1073,7 @@ export class GameScene extends Phaser.Scene {
     if (s.ralph > 0) A('gerbil', 'POP GOES THE GERBIL', 'Squeak. Squeak. Silence.');
     if (s.heather > 0) A('bear', 'BEAR NECESSITY AVERTED', 'The rink is closed. Forever.');
     if (s.amalgam > 0) A('compost', 'COMPOSTED', 'Reduced, reused, recycled.');
-    if (s.mongo > 0) A('souschef', 'SOUS CHEF', `Mongo pre-chewed ${s.mongo} rat${s.mongo > 1 ? 's' : ''}. Health code violation.`);
+    if (s.mongo > 0) A('souschef', 'SOUS CHEF', `Mongo tenderized ${s.mongo} baddie${s.mongo > 1 ? 's' : ''}. Health code violation.`);
     if (this.mongoLevel >= 3) A('bigboy', 'BIG BOY', '12 pounds of raptor. All of it hungry.');
     if (this.visitedZones.size >= 3) A('sightseer', 'SIGHTSEER', 'Saw every zone. Smelled every zone.');
     if (runSecs < 240) A('speedrunner', 'SPEEDRUNNER', 'Under 4 minutes. Borant is reviewing the tape.');
@@ -1029,7 +1082,8 @@ export class GameScene extends Phaser.Scene {
     if (s.dmg === 0 && s.pits === 0) A('ghost', 'UNTOUCHABLE', 'Zero damage. Donut is accepting all credit.');
     if (s.pits >= 3) A('diver', 'PIT ENTHUSIAST', `${s.pits} pits visited. Gravity appreciates the loyalty.`);
     if (this.hp >= this.maxHP) A('perfect', 'SHOW-OFF', 'Full HP at the stairs. Suspicious. Impressive. Suspicious.');
-    if (kills >= this.enemies.getChildren().length && kills > 0) A('exterm', 'EXTERMINATOR', 'Everything is dead. The Hoarder sends condolences.');
+    const mobCount = this.enemies.getChildren().filter((e) => e.etype !== 'dummy').length;
+    if (kills >= mobCount && kills > 0 && mobCount > 0) A('exterm', 'EXTERMINATOR', 'Everything is dead. The Hoarder sends condolences.');
     if (missed.crystal > 0) A('waster', 'WASTE NOT, WANT NOT', `Left ${missed.crystal} mana behind. Emphasis on the WANT NOT.`);
     if (s.star === 0 && missed.star > 0) A('snob', 'LOOT SNOB', 'Stars? Never heard of her.');
     if (s.casts === 0 && kills > 0) A('nomagic', "WHAT'S MANA?", 'Never cast once. Donut is telling everyone.');
@@ -1551,8 +1605,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Leave a corpse: Mongo snacks on the fallen behind you.
-    // (The Swine leaves one too. Mongo has never been happier.)
-    this.dropCorpse(e);
+    // (Bosses too. Dummies just poof — Jeff is straw, not food.)
+    if (e.etype !== 'dummy') this.dropCorpse(e);
 
     if (e.halo) {
       const halo = e.halo;
@@ -1726,7 +1780,7 @@ export class GameScene extends Phaser.Scene {
     // packed rooms instead of hunting).
     let threat = Infinity;
     this.enemies.getChildren().forEach((e) => {
-      if (!e.alive || e.etype === 'rat') return;
+      if (!e.alive || e.etype === 'rat' || e.etype === 'dummy') return;
       const d = Math.abs(e.x - momX);
       if (d < threat) threat = d;
     });
@@ -1737,14 +1791,15 @@ export class GameScene extends Phaser.Scene {
     const tgt = this.mongoTarget;
     if (tgt) {
       if (tgt.kind === 'corpse' && tgt.ref.done) this.mongoTarget = null;
-      else if (tgt.kind === 'rat' && (!tgt.ref.alive || Math.abs(tgt.ref.x - momX) > Math.max(leash, 120))) {
+      else if (tgt.kind === 'prey' && (!tgt.ref.alive || Math.abs(tgt.ref.x - momX) > Math.max(leash, 120))) {
         this.mongoTarget = null;
       }
     }
-    // --- chewing a live rat: pinned, takes chew-seconds, scales with level
+    // --- chewing live prey: pinned, chew scales with level AND prey bulk.
+    // Anything but bosses (Mongo knows better). Big prey takes longer.
     if (this.mongoFightT > 0) {
       this.mongoFightT -= dt;
-      const r = this.mongoTarget && this.mongoTarget.kind === 'rat' ? this.mongoTarget.ref : null;
+      const r = this.mongoTarget && this.mongoTarget.kind === 'prey' ? this.mongoTarget.ref : null;
       m.setScale(L.scale * (1 + Math.abs(Math.sin(this.mongoFightT * 22)) * 0.14));
       if (r && r.alive) {
         r.body.setVelocity(0, 0); // pinned — Mongo is sitting on it
@@ -1791,12 +1846,13 @@ export class GameScene extends Phaser.Scene {
       destX = homeX;
       hustle = L.speed + 60; // scared legs are fast legs
     } else {
-      // --- pick a job: nearest rat inside the (threat-tightened) leash
-      // beats a corpse. Rats only — brave, not stupid.
+      // --- pick a job: nearest catchable prey inside the (threat-tightened)
+      // leash beats a corpse. Anything but bosses and test dummies — Mongo
+      // is brave, not stupid, and Jeff is staff.
       let rat = null;
       let rd = leash;
       this.enemies.getChildren().forEach((e) => {
-        if (!e.alive || e.etype !== 'rat') return;
+        if (!e.alive || e.etype === this.bossType || e.etype === 'dummy') return;
         const d = Math.abs(e.x - momX);
         if (d < rd) { rd = d; rat = e; }
       });
@@ -1808,13 +1864,14 @@ export class GameScene extends Phaser.Scene {
         if (d < cd) { cd = d; corpse = c; }
       }
       if (rat) {
-        this.mongoTarget = { kind: 'rat', ref: rat };
+        this.mongoTarget = { kind: 'prey', ref: rat };
         destX = rat.x;
-        hustle = L.speed + 10; // Mongo is faster than a rat (barely, braver later)
-        // Caught it: sit on it and chew (chew time shrinks with level).
-        if (Math.abs(rat.x - m.x) < 26 && Math.abs(rat.y - m.y) < 70) {
+        hustle = L.speed + 10; // Mongo is faster than prey (barely, braver later)
+        // Caught it: sit on it and chew. Bulk takes longer (trog ≈ 3x rat).
+        const reach = 26 + (rat.feetScaled || 20) * 0.3;
+        if (Math.abs(rat.x - m.x) < reach && Math.abs(rat.y - m.y) < 80) {
           rat.setTintFill(0xffffff);
-          this.mongoFightT = L.chew;
+          this.mongoFightT = Math.min(3, L.chew * (1 + 0.7 * ((rat.maxHp || 1) - 1)));
           return;
         }
       } else if (corpse) {
@@ -1868,16 +1925,17 @@ export class GameScene extends Phaser.Scene {
     if (onGround) this.lastGroundedAt = time;
 
     // ----- Horizontal movement -----
+    const spd = this.buffs.speed;
     if (this.keys.left.isDown) {
-      body.setAccelerationX(-PLAYER.accel);
+      body.setAccelerationX(-PLAYER.accel * spd);
       this.carlVis.setFacing(-1);
     } else if (this.keys.right.isDown) {
-      body.setAccelerationX(PLAYER.accel);
+      body.setAccelerationX(PLAYER.accel * spd);
       this.carlVis.setFacing(1);
     } else {
       body.setAccelerationX(0);
     }
-    this.player.setMaxVelocity(PLAYER.speed, 1100);
+    this.player.setMaxVelocity(PLAYER.speed * spd, 1100);
 
     const moving = Math.abs(body.velocity.x) > 30;
     if (moving && onGround) this.carlVis.playWalk();
@@ -1972,6 +2030,12 @@ export class GameScene extends Phaser.Scene {
     // Failsafe: fell out of the world somehow → treat as pit.
     if (this.player.y > WORLD_HEIGHT + 200) this.pitFall();
 
+    // Floor 5 flavor: Bopca greets first-time club entrants.
+    if (this.floor === 5 && !this.bopcaSaid && this.player.x > 1150) {
+      this.bopcaSaid = true;
+      this.events.emit('toast', "BOPCA: 'Welcome. Break Jeff, buy nothing.'");
+      this.toast("BOPCA: 'Welcome. Break Jeff, buy nothing.'", '#ffb060');
+    }
     // Floor 0 cold open: reaching the tree brings Donut down.
     if (this.donutWaiting && this.player.x > 380) {
       this.donutWaiting = false;
@@ -2110,7 +2174,7 @@ export class GameScene extends Phaser.Scene {
     let connected = false;
     this.enemies.getChildren().forEach((e) => {
       if (!e.alive) return;
-      if (Math.abs(e.x - x) < 72 && Math.abs(e.y - y) < 70) {
+      if (Math.abs(e.x - x) < 72 + this.buffs.punchReach && Math.abs(e.y - y) < 70) {
         connected = true;
         this.damageEnemy(e, this.punchDmg, 'punch');
         this.powBurst(e.x, e.y - 10, 0.8);
@@ -2154,22 +2218,27 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(110, 0.005);
     // Ground-pound AoE: the slam pulps everything around the landing.
     // Generous on purpose — stomping INTO a pack should clear it.
+    const R = 120 * this.buffs.stompMul;
     this.enemies.getChildren().forEach((e) => {
       if (!e.alive) return;
-      if (Math.abs(e.x - this.player.x) < 120 && Math.abs(e.y - this.player.y) < 90) {
+      if (Math.abs(e.x - this.player.x) < R && Math.abs(e.y - this.player.y) < 90) {
         this.damageEnemy(e, 99, 'stomp');
       }
     });
   }
 
   doMagicMissile(time) {
-    if (this.mana < MANA.cost) {
+    // OVERDRIVE pedestal: free casting while the timer runs.
+    const free = time < this.buffs.manaFreeUntil;
+    if (!free && this.mana < MANA.cost) {
       this.toast('NO MANA!', '#888888');
       this.events.emit('toast', 'NO MANA');
       return;
     }
-    this.mana -= MANA.cost;
-    this.manaRegenAcc = 0;
+    if (!free) {
+      this.mana -= MANA.cost;
+      this.manaRegenAcc = 0;
+    }
     this.lastMagicAt = time;
     this.stats.casts += 1;
     this.registry.set('mana', this.mana);
@@ -2225,11 +2294,141 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* ==========================================================
+   * SAFE ROOM + DESPERADO TEST GROUND (Floor 5)
+   * ========================================================== */
+
+  buildSafeRoom() {
+    // Hanging club sign over the gate.
+    this.add.text(1800, 260, '★ DESPERADO CLUB ★', {
+      fontFamily: '"Courier New", monospace', fontSize: '40px', fontStyle: 'bold',
+      color: '#ffb000', stroke: '#080808', strokeThickness: 8,
+      backgroundColor: '#14080a', padding: { x: 16, y: 8 },
+    }).setOrigin(0.5).setDepth(10);
+    // Bar counter (Bopca keeps it, you keep your hands off).
+    this.add.rectangle(320, FLOOR_Y - 50, 220, 100, 0x4a2e18, 1).setDepth(4);
+    this.add.rectangle(320, FLOOR_Y - 100, 230, 12, 0x6a4a2a, 1).setDepth(4);
+    for (const [bx, col] of [[260, 0xff5a20], [300, 0x4df3ff], [340, 0xffc93d], [380, 0x7aff6a]]) {
+      this.add.circle(bx, FLOOR_Y - 118, 8, col, 1).setDepth(5);
+      this.add.rectangle(bx - 3, FLOOR_Y - 106, 6, 6, 0x14101a, 1).setDepth(5);
+    }
+    // Warm lamps + stools.
+    for (const lx of [700, 1300, 2000]) {
+      const lamp = this.add.circle(lx, FLOOR_Y - 190, 26, 0xffc93d, 0.25).setDepth(3);
+      this.tweens.add({
+        targets: lamp, alpha: { from: 0.18, to: 0.32 }, duration: 1200,
+        yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+    }
+    for (const sx of [240, 400]) {
+      this.add.circle(sx, FLOOR_Y - 20, 16, 0x6a4a2a, 1).setDepth(4);
+      this.add.rectangle(sx - 4, FLOOR_Y - 52, 8, 36, 0x4a2e18, 1).setDepth(4);
+    }
+  }
+
+  spawnPedestals() {
+    for (const def of (FLOORS[5].pedestals || [])) {
+      const glow = this.add.circle(def.x, FLOOR_Y - 30, 34, def.color, 0.3).setDepth(11);
+      this.tweens.add({
+        targets: glow, alpha: { from: 0.2, to: 0.4 }, scale: { from: 1, to: 1.1 },
+        duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+      const ped = this.add.image(def.x, FLOOR_Y - 32, 'pedestal').setDepth(12);
+      this.add.text(def.x, FLOOR_Y - 130, def.label, {
+        fontFamily: '"Courier New", monospace', fontSize: '15px', fontStyle: 'bold',
+        color: '#f4ecd8', stroke: '#080808', strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(12);
+      const zone = this.add.zone(def.x, FLOOR_Y - 55, 70, 110).setOrigin(0.5, 0.5);
+      this.physics.add.existing(zone, true);
+      this.physics.add.overlap(this.player, zone, () => this.applyPedestal(def, zone, ped, glow));
+    }
+  }
+
+  applyPedestal(def, zone, ped, glow) {
+    if (this.dead || this.won || def.taken) return;
+    def.taken = true;
+    zone.destroy();
+    ped.setAlpha(0.45);
+    this.tweens.killTweensOf(glow);
+    glow.setAlpha(0.12);
+    for (let i = 0; i < 10; i++) {
+      const s = this.add.circle(def.x, FLOOR_Y - 60, 3, def.color, 0.9).setDepth(26);
+      this.tweens.add({
+        targets: s, x: def.x + (Math.random() - 0.5) * 120, y: FLOOR_Y - 120 - Math.random() * 60,
+        alpha: 0, duration: 500, onComplete: () => s.destroy(),
+      });
+    }
+    if (def.kind === 'boots') {
+      this.buffs.speed = 1.4;
+      this.toast('SWIFT BOOTS! +40% move speed', '#4df3ff');
+      this.floatText(def.x, FLOOR_Y - 150, 'SWIFT BOOTS', '#4df3ff');
+    } else if (def.kind === 'knuckles') {
+      this.punchDmg += 2;
+      this.buffs.punchReach += 24;
+      this.toast('BRASS+2! Punch hits WAY harder', '#ffb000');
+      this.floatText(def.x, FLOOR_Y - 150, 'PUNCH +2', '#ffb000');
+    } else if (def.kind === 'overdrive') {
+      this.buffs.manaFreeUntil = this.time.now + 20000;
+      this.toast('OVERDRIVE! Free magic for 20s', '#ff5a20');
+      this.floatText(def.x, FLOOR_Y - 150, 'OVERDRIVE 20s', '#ff5a20');
+    } else if (def.kind === 'quake') {
+      this.buffs.stompMul = 2;
+      this.toast('QUAKE! Stomp AoE x2', '#7aff6a');
+      this.floatText(def.x, FLOOR_Y - 150, 'QUAKE x2', '#7aff6a');
+    }
+    this.events.emit('toast', 'POWER UP!');
+  }
+
+  spawnDummy(dx, quiet) {
+    const t = ENEMY_TYPES.dummy;
+    const e = this.enemies.create(dx, FLOOR_Y - t.feet * t.scale, t.tex);
+    e.setScale(t.scale);
+    e.body.setSize(t.body[0], t.body[1]).setOffset(t.off[0], t.off[1]);
+    e.body.setAllowGravity(false);
+    e.body.setImmovable(true);
+    e.setDepth(15);
+    e.hp = t.hp;
+    e.maxHp = t.hp;
+    e.alive = true;
+    e.etype = 'dummy';
+    e.label = t.label;
+    e.feetScaled = t.feet * t.scale;
+    e.speed = 0;
+    e.scoreValue = 0;
+    e.patrolHomeX = dx;
+    e.patrolRange = 0;
+    e.patrolDir = 1;
+    e.spitTimer = 999999;
+    e.halo = this.add.circle(e.x, e.y, 30, 0xffc93d, 0.22).setDepth(14);
+    e.hpText = this.add.text(e.x, e.y - 52, '♥'.repeat(e.hp), {
+      fontFamily: '"Courier New", monospace', fontSize: '15px', fontStyle: 'bold', color: '#ff8aa0',
+      stroke: '#080808', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(16);
+    if (!quiet) {
+      e.setScale(0.1);
+      this.tweens.add({ targets: e, scale: t.scale, duration: 300, ease: 'Back.easeOut' });
+    }
+    return e;
+  }
+
+  restockDummies() {
+    if (this.dead || this.won || this.floor !== 5) return;
+    const alive = this.enemies.getChildren().filter((e) => e.alive && e.etype === 'dummy');
+    if (alive.length >= 3) return;
+    const spots = FLOORS[5].dummies || [];
+    const free = spots.filter((sx) => !alive.some((e) => Math.abs(e.x - sx) < 80));
+    if (free.length === 0) return;
+    this.spawnDummy(free[Math.floor(Math.random() * free.length)]);
+    this.toast('A wild JEFF appears!', '#8ad8ff');
+  }
+
+  /* ==========================================================
    * PLAYER DAMAGE / PIT / DEATH
    * ========================================================== */
 
   playerHitsEnemy(e) {
     if (!e || !e.alive || this.dead || this.won) return;
+    // Jeff is staff: dummies never hurt Carl (stomping/punching them is fine).
+    if (e.etype === 'dummy') return;
 
     // Stomp: falling fast (or slamming) with feet above the enemy's head.
     // Head sits feetScaled above the enemy's center (per-type, bottom-aligned).

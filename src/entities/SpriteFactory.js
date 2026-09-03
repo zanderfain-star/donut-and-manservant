@@ -211,8 +211,8 @@ function drawCarl(g, outlineOnly, pose) {
 
   // ---- REAR ARM = GAUNTLET (thrown back like the reference lunge) ----
   // shoulder (46,48) -> elbow -> spiked fist.
-  const gElbow = pose === 'idle' ? [32, 62] : run === 1 ? [24, 56] : [28, 60];
-  const gFist = pose === 'idle' ? [30, 80] : run === 1 ? [8, 50] : [14, 56];
+  const gElbow = pose === 'idle' ? [28, 62] : run === 1 ? [24, 56] : [28, 60];
+  const gFist = pose === 'idle' ? [24, 80] : run === 1 ? [8, 50] : [14, 56];
   drawCarlLimb(g, C, 46, 48, gElbow[0], gElbow[1], 16, !outlineOnly);
   drawCarlLimb(g, C, gElbow[0], gElbow[1], gFist[0], gFist[1], 13, false);
   // red wrap at the wrist, then the brass
