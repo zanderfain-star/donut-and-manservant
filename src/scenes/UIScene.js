@@ -170,6 +170,7 @@ export class UIScene extends Phaser.Scene {
       this._winFloor = undefined;
       this._winHasNext = false;
       this._descendArmed = false;
+      this.winCredit = null;
     });
 
     // Apply any zone event that arrived before create() built the texts,
@@ -500,9 +501,38 @@ export class UIScene extends Phaser.Scene {
       // SPACE on the clear panel goes DOWN. (Safe: GameScene.update
       // returns early while won, so this never double-fires a jump.)
       this.input.keyboard.once('keydown-SPACE', () => this.descendToNext());
-      this.input.once('pointerdown', () => this.descendToNext());
+      this.input.on('pointerdown', () => this.descendToNext());
     } else {
-      this.input.once('pointerdown', () => this.restartGame());
+      // Final panel: credit Matt Dinniman + the book link (clickable —
+      // clicks on it must NOT also retry, same guard pattern as the menu).
+      this.winCredit = this.add.text(
+        640, ay + 44,
+        'a fan game honoring DUNGEON CRAWLER CARL by Matt Dinniman — mattdinniman.com',
+        {
+          fontFamily: '"Courier New", monospace',
+          fontSize: '12px',
+          color: '#8ad8ff',
+        },
+      ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(1002)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          if (typeof window !== 'undefined') {
+            window.open('https://mattdinniman.com/books/dungeon-crawler-carl/', '_blank', 'noopener');
+          }
+        })
+        .on('pointerover', function () { this.setColor('#ffffff'); })
+        .on('pointerout', function () { this.setColor('#8ad8ff'); });
+      this.input.on('pointerdown', (pointer) => {
+        if (pointer && pointer.x !== undefined && this.winCredit) {
+          const b = this.winCredit.getBounds();
+          if (b) {
+            const pad = 14;
+            if (Math.abs(pointer.x - b.centerX) < b.width / 2 + pad &&
+                Math.abs(pointer.y - b.centerY) < b.height / 2 + pad) return;
+          }
+        }
+        this.restartGame();
+      });
     }
   }
 

@@ -287,10 +287,34 @@ export class MenuScene extends Phaser.Scene {
       color: '#6e4828',
     }).setOrigin(0, 1).setDepth(95);
 
+    // Credit where due: a fan game honoring Matt Dinniman's books.
+    // Clickable (opens the book page) — and clicks on it must NOT also
+    // start the game, so startGame ignores pointers landing on it.
+    this.creditText = this.add.text(
+      W / 2, H - 44,
+      'a fan game honoring DUNGEON CRAWLER CARL by Matt Dinniman — mattdinniman.com',
+      {
+        fontFamily: '"Courier New", monospace',
+        fontSize: '12px',
+        color: '#8ad8ff',
+      },
+    ).setOrigin(0.5).setDepth(95)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this._creditClickedAt = this.time.now;
+        if (typeof window !== 'undefined') {
+          window.open('https://mattdinniman.com/books/dungeon-crawler-carl/', '_blank', 'noopener');
+        }
+      })
+      .on('pointerover', function () { this.setColor('#ffffff'); })
+      .on('pointerout', function () { this.setColor('#8ad8ff'); });
+
     // ----- INPUT (guard against double-start) -----
     this.input.keyboard.once('keydown-SPACE', () => this.startGame());
     this.input.keyboard.once('keydown-ENTER', () => this.startGame());
-    this.input.once('pointerdown', () => this.startGame());
+    // .on (not .once): credit-link clicks are swallowed by the guard above
+    // without consuming the listener; _started blocks real double-starts.
+    this.input.on('pointerdown', (pointer) => this.startGame(pointer));
   }
 
   drawMenuBackground() {
@@ -343,8 +367,20 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(0, 0, 'menu_bg').setOrigin(0, 0).setDepth(0);
   }
 
-  startGame() {
+  startGame(pointer) {
     if (this._started) return;
+    // Clicks on the Matt Dinniman credit link open the book page instead.
+    // (Generous padding: canvas→game pointer mapping can skew ~11px.)
+    if (pointer && pointer.x !== undefined && this.creditText) {
+      const b = this.creditText.getBounds();
+      if (b) {
+        const pad = 14;
+        const cx = b.centerX;
+        const cy = b.centerY;
+        if (Math.abs(pointer.x - cx) < b.width / 2 + pad &&
+            Math.abs(pointer.y - cy) < b.height / 2 + pad) return;
+      }
+    }
     this._started = true;
     // Stop any leftover game + UI scenes, then start fresh.
     if (this.scene.isActive('GameScene')) this.scene.stop('GameScene');

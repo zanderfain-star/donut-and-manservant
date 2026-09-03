@@ -3,6 +3,10 @@
 A bold cartoon / comic-cover sidescroller inspired by *Dungeon Crawler Carl*,
 hosted at **https://donut.4bros.cc**.
 
+> A fan game honoring **DUNGEON CRAWLER CARL by Matt Dinniman** —
+> read the books: <https://mattdinniman.com/books/dungeon-crawler-carl/>.
+> Unofficial, made with love. Goddammit, Donut!
+
 You are Carl (red hair, brass gauntlet, heart boxers). Donut the crowned cat
 rides behind you — and fires eye-rockets from your shoulder. Mongo, Donut's
 baby raptor, trails the party: he snacks on fallen corpses (+10 NOM) and
@@ -168,3 +172,7 @@ Full DNS + repo setup walkthrough: see `DEPLOY.md`.
 GitHub Pages from the `gh-pages` branch. Custom domain `donut.4bros.cc`
 configured via `public/CNAME`. `vite.config.js` uses `base: './'` — do not
 change it or Pages asset paths break.
+
+## License
+
+MIT — see [LICENSE](./LICENSE). Fork it, fix it, make Floor 5 weird.
