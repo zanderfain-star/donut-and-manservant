@@ -49,6 +49,120 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(0, 0, 1, 1);
     });
 
+    // ---------------- PER-FLOOR BACKGROUNDS (1024x720) ----------------
+    // bg_cinder (F2): ember-cracked dark rock, lava glow low.
+    this.stamp(['bg_cinder'], 1024, 720, (g) => {
+      for (let y = 0; y < 720; y += 4) {
+        const t = y / 720;
+        const r = Math.floor(0x14 * (1 - t) + 0x3a * t);
+        const gg = Math.floor(0x08 * (1 - t) + 0x10 * t);
+        const b = Math.floor(0x10 * (1 - t) + 0x06 * t);
+        g.fillStyle((r << 16) | (gg << 8) | b, 1);
+        g.fillRect(0, y, 1024, 4);
+      }
+      // basalt columns
+      g.fillStyle(0x0a0608, 1);
+      let seed = 31;
+      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+      for (let x = 0; x < 1024; x += 90 + rnd() * 80) {
+        const w = 50 + rnd() * 60;
+        const h = 200 + rnd() * 260;
+        g.fillRect(x, 720 - h, w, h);
+        g.lineStyle(2, 0xff5a20, 0.5);
+        g.lineBetween(x + 6, 720 - h + 20, x + 6, 700);
+      }
+      // ember cracks
+      g.lineStyle(3, 0xff7a20, 0.9);
+      for (let i = 0; i < 14; i++) {
+        const ex = rnd() * 1024;
+        const ey = 420 + rnd() * 280;
+        g.lineBetween(ex, ey, ex + 20 + rnd() * 40, ey - 10 - rnd() * 20);
+      }
+      g.fillStyle(0xffc93d, 1);
+      for (let i = 0; i < 40; i++) g.fillCircle(rnd() * 1024, 480 + rnd() * 230, 1.6);
+    });
+
+    // bg_overcity (F3): dead grey sky over a drowned volcano rim city.
+    this.stamp(['bg_overcity'], 1024, 720, (g) => {
+      for (let y = 0; y < 720; y += 4) {
+        const t = y / 720;
+        const v = Math.floor(0x3a * (1 - t) + 0x0c * t);
+        g.fillStyle((v << 16) | (v << 8) | (v + 8), 1);
+        g.fillRect(0, y, 1024, 4);
+      }
+      // volcano rim arc across the top
+      g.fillStyle(0x060608, 1);
+      g.fillEllipse(512, -140, 1300, 300);
+      g.lineStyle(3, 0x8a2a1a, 0.8);
+      g.beginPath();
+      g.arc(512, -140, 640, 0.15 * Math.PI, 0.85 * Math.PI, false);
+      g.strokePath();
+      // ruined slabs skyline
+      g.fillStyle(0x101014, 1);
+      let seed = 77;
+      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+      for (let x = 0; x < 1024; x += 70 + rnd() * 90) {
+        const w = 44 + rnd() * 70;
+        const h = 120 + rnd() * 200;
+        const tilt = (rnd() - 0.5) * 0.12;
+        g.save();
+        g.translateCanvas(x + w / 2, 720 - h / 2);
+        g.rotateCanvas(tilt);
+        g.fillRect(-w / 2, -h / 2, w, h);
+        g.restore();
+        // broken windows (dark holes + one lit circus poster)
+        g.fillStyle(0x000000, 1);
+        for (let wy = 720 - h + 20; wy < 700; wy += 26) {
+          for (let wx = x + 10; wx < x + w - 10; wx += 18) {
+            if (rnd() > 0.6) g.fillRect(wx, wy, 8, 10);
+          }
+        }
+      }
+      // circus tent sliver (magenta + gold) poking up mid-skyline
+      g.fillStyle(0x8a1a5a, 1);
+      g.fillTriangle(590, 480, 690, 480, 640, 380);
+      g.fillStyle(0xffc93d, 1);
+      g.fillTriangle(628, 480, 652, 480, 640, 380);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(590, 480, 640, 380);
+      g.lineBetween(690, 480, 640, 380);
+    });
+
+    // bg_tunnel (F4): Iron Tangle tube — arch rings + cable + lamps.
+    // STREAMS leftward in update() to sell the train's speed.
+    this.stamp(['bg_tunnel'], 1024, 720, (g) => {
+      g.fillStyle(0x07070c, 1);
+      g.fillRect(0, 0, 1024, 720);
+      // repeating tube arch rings (the motion cue)
+      for (let x = -128; x < 1152; x += 128) {
+        g.lineStyle(10, 0x141420, 1);
+        g.strokeRoundedRect(x, 40, 128, 640, 60);
+        g.lineStyle(3, 0x2a2a44, 1);
+        g.strokeRoundedRect(x, 40, 128, 640, 60);
+        // rivets on the ring
+        g.fillStyle(0x3a3a58, 1);
+        for (const [rx, ry] of [[x + 14, 200], [x + 114, 200], [x + 14, 500], [x + 114, 500]]) {
+          g.fillCircle(rx, ry, 4);
+        }
+      }
+      // overhead cable + hanging lamps (bright streak sources)
+      g.lineStyle(4, 0x0a0a10, 1);
+      g.lineBetween(0, 90, 1024, 90);
+      for (let x = 64; x < 1024; x += 256) {
+        g.lineStyle(3, 0x0a0a10, 1);
+        g.lineBetween(x, 90, x, 120);
+        g.fillStyle(0xfff2b0, 1);
+        g.fillEllipse(x, 132, 26, 14);
+        g.fillStyle(0xffc93d, 0.25);
+        g.fillEllipse(x, 150, 60, 60);
+      }
+      // track-level dark + red signal dots
+      g.fillStyle(0x050508, 1);
+      g.fillRect(0, 620, 1024, 100);
+      g.fillStyle(0xff2e4d, 1);
+      for (let x = 100; x < 1024; x += 340) g.fillCircle(x, 600, 5);
+    });
+
     // Magic missile — BIG Donut eye-rocket (28px, was a 16px dot).
     // Ink-ringed cyan bolt, white-hot core, crown-spark fins. Faces RIGHT.
     this.stamp(['magic_missile'], 28, 28, (g) => {
@@ -868,6 +982,256 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xffffff, 1);
       g.fillCircle(25, 6, 2);
       g.fillCircle(7, 5, 1.4);
+    });
+
+    // rubble_tile (F3 Over City): pale concrete slabs, cracks, rebar nubs.
+    this.stamp(['rubble_tile'], 96, 64, (g) => {
+      g.fillStyle(0x8a8a94, 1);
+      g.fillRect(0, 0, 96, 64);
+      g.fillStyle(0x6a6a74, 1);
+      g.fillRect(0, 0, 96, 8);
+      g.fillStyle(0xa8a8b2, 1);
+      g.fillRect(4, 12, 40, 20);
+      g.fillRect(50, 10, 42, 24);
+      g.fillRect(10, 38, 34, 20);
+      g.fillRect(50, 40, 38, 18);
+      g.lineStyle(2, 0x3a3a44, 1);
+      g.strokeRect(4, 12, 40, 20);
+      g.strokeRect(50, 10, 42, 24);
+      g.strokeRect(10, 38, 34, 20);
+      g.strokeRect(50, 40, 38, 18);
+      g.lineStyle(2, 0x2a2a32, 1);
+      g.lineBetween(12, 14, 30, 30);
+      g.lineBetween(60, 44, 80, 56);
+      g.lineBetween(50, 20, 50, 34);
+      // rebar nubs
+      g.fillStyle(0x8a4a20, 1);
+      for (const [rx, ry] of [[8, 44], [88, 16], [48, 58]]) g.fillCircle(rx, ry, 2.5);
+      g.fillStyle(0xffffff, 0.5);
+      g.fillRect(6, 9, 20, 2);
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(0, 8, 96, 8);
+    });
+
+    // train_roof (F4 Iron Tangle): steel walkway panels, rivets, RED LINE stripe.
+    this.stamp(['train_roof'], 96, 64, (g) => {
+      g.fillStyle(0x3a3f4a, 1);
+      g.fillRect(0, 0, 96, 64);
+      g.fillStyle(0x2a2e36, 1);
+      g.fillRect(0, 0, 96, 10);
+      g.fillStyle(0x4a505c, 1);
+      g.fillRect(0, 10, 96, 6);
+      // panel seams + rivets
+      g.lineStyle(2, 0x1a1c22, 1);
+      g.lineBetween(32, 10, 32, 64);
+      g.lineBetween(64, 10, 64, 64);
+      g.fillStyle(0x6a707c, 1);
+      for (const rx of [8, 24, 40, 56, 72, 88]) {
+        g.fillCircle(rx, 20, 2);
+        g.fillCircle(rx, 34, 2);
+        g.fillCircle(rx, 48, 2);
+      }
+      // RED LINE stripe down the middle
+      g.fillStyle(0xe02020, 1);
+      g.fillRect(0, 28, 96, 5);
+      g.fillStyle(0xff8080, 0.8);
+      g.fillRect(0, 28, 96, 1.5);
+      // edge hazard ticks
+      g.fillStyle(0xffc93d, 1);
+      for (let hx = 2; hx < 96; hx += 12) {
+        g.fillTriangle(hx, 58, hx + 6, 58, hx + 3, 63);
+      }
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(0, 10, 96, 10);
+    });
+
+    // DREK (F3/F4 swarmer): knee-high fat grey demonic infant. 56x56.
+    this.stamp(['enemy_drek'], 56, 56, (g) => {
+      const hide = 0x8a8a94;
+      const dark = 0x4a4a54;
+      // stubby legs + claw feet on the frame bottom
+      g.fillStyle(hide, 1);
+      g.fillRect(18, 40, 8, 10);
+      g.fillRect(30, 40, 8, 10);
+      g.fillStyle(dark, 1);
+      g.fillRect(16, 48, 12, 6);
+      g.fillRect(28, 48, 12, 6);
+      g.fillStyle(PAL.teeth, 1);
+      for (const cx of [17, 22, 29, 34]) g.fillTriangle(cx, 54, cx + 3, 54, cx + 1.5, 51);
+      g.lineStyle(2, INK, 1);
+      g.strokeRect(16, 48, 12, 6);
+      g.strokeRect(28, 48, 12, 6);
+      // fat round body
+      g.fillStyle(hide, 1);
+      g.fillCircle(28, 32, 16);
+      g.fillStyle(0xffffff, 0.3);
+      g.fillEllipse(22, 26, 12, 8);
+      g.fillStyle(dark, 1);
+      g.fillEllipse(28, 42, 18, 8);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(28, 32, 16);
+      // loincloth flap
+      g.fillStyle(0x5a3a20, 1);
+      g.fillTriangle(20, 40, 36, 40, 28, 50);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(20, 40, 28, 50);
+      g.lineBetween(36, 40, 28, 50);
+      // tiny nub horns
+      g.fillStyle(0xe8d8b0, 1);
+      g.fillTriangle(16, 22, 12, 12, 20, 18);
+      g.fillTriangle(40, 22, 44, 12, 36, 18);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(16, 22, 12, 12);
+      g.lineBetween(40, 22, 44, 12);
+      // big wet eyes + wailing mouth
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(22, 28, 5);
+      g.fillCircle(34, 28, 5);
+      g.fillStyle(INK, 1);
+      g.fillCircle(22, 29, 2.5);
+      g.fillCircle(34, 29, 2.5);
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(21, 27, 1);
+      g.fillCircle(33, 27, 1);
+      g.fillStyle(INK, 1);
+      g.fillEllipse(28, 38, 8, 5);
+      g.fillStyle(PAL.teeth, 1);
+      g.fillTriangle(25, 36, 28, 36, 26.5, 39);
+      // baby-cries: musical wail notes
+      g.fillStyle(PAL.goggleGlint, 1);
+      g.fillCircle(8, 14, 2.5);
+      g.fillCircle(48, 10, 2.5);
+    });
+
+    // HEATHER (F3 boss): Mold Bear on roller skates. 120x120.
+    this.stamp(['boss_heather'], 120, 120, (g) => {
+      const fur = 0x6a4a2a;
+      const dark = 0x3a2412;
+      // roller skates (the whole point)
+      for (const sx of [26, 66]) {
+        g.fillStyle(0x2a2a32, 1);
+        g.fillRoundedRect(sx, 100, 28, 10, 3);
+        g.fillStyle(0xffc93d, 1);
+        for (const wx of [sx + 5, sx + 14, sx + 23]) g.fillCircle(wx, 110, 3.5);
+        g.lineStyle(3, INK, 1);
+        g.strokeRoundedRect(sx, 100, 28, 10, 3);
+      }
+      // legs
+      g.fillStyle(fur, 1);
+      g.fillRect(28, 78, 22, 26);
+      g.fillRect(68, 78, 22, 26);
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(28, 78, 28, 102);
+      g.lineBetween(90, 78, 90, 102);
+      // massive torso + belly
+      g.fillStyle(fur, 1);
+      g.fillRoundedRect(16, 34, 88, 50, 14);
+      g.fillStyle(0x9a7a52, 1);
+      g.fillEllipse(60, 62, 52, 30);
+      g.fillStyle(dark, 1);
+      g.fillEllipse(80, 50, 20, 14); // mold blotch
+      g.fillStyle(0x4dc94d, 1);
+      g.fillCircle(76, 46, 3);
+      g.fillCircle(84, 52, 2.5);
+      g.lineStyle(4, INK, 1);
+      g.strokeRoundedRect(16, 34, 88, 50, 14);
+      // burly arms + claws
+      g.fillStyle(fur, 1);
+      g.fillRoundedRect(2, 40, 16, 34, 6);
+      g.fillRoundedRect(102, 40, 16, 34, 6);
+      g.fillStyle(PAL.teeth, 1);
+      for (const cy of [74, 79]) {
+        g.fillTriangle(2, cy, 10, cy + 2, 2, cy + 4);
+        g.fillTriangle(118, cy, 110, cy + 2, 118, cy + 4);
+      }
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(2, 40, 16, 34, 6);
+      g.strokeRoundedRect(102, 40, 16, 34, 6);
+      // head + muzzle + mold
+      g.fillStyle(fur, 1);
+      g.fillCircle(60, 22, 17);
+      g.fillStyle(0x9a7a52, 1);
+      g.fillEllipse(60, 28, 22, 12);
+      g.fillStyle(dark, 1);
+      g.fillEllipse(48, 12, 14, 8);
+      // round ears
+      g.fillStyle(fur, 1);
+      g.fillCircle(45, 8, 7);
+      g.fillCircle(75, 8, 7);
+      g.fillStyle(dark, 1);
+      g.fillCircle(45, 8, 3);
+      g.fillCircle(75, 8, 3);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(45, 8, 7);
+      g.strokeCircle(75, 8, 7);
+      // bloodshot rink-rage eyes
+      for (const ex of [53, 67]) {
+        g.fillStyle(0xffffff, 1);
+        g.fillCircle(ex, 20, 5);
+        g.fillStyle(PAL.ratEye, 1);
+        g.fillCircle(ex, 21, 3);
+        g.fillStyle(INK, 1);
+        g.fillCircle(ex, 21, 1.4);
+      }
+      // nose + jaw
+      g.fillStyle(INK, 1);
+      g.fillCircle(60, 28, 3);
+      g.fillStyle(INK, 1);
+      g.fillRoundedRect(50, 31, 20, 6, 2);
+      g.fillStyle(PAL.teeth, 1);
+      g.fillTriangle(53, 31, 57, 31, 55, 36);
+      g.fillTriangle(63, 31, 67, 31, 65, 36);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(60, 22, 17);
+    });
+
+    // GHOUL AMALGAM (F4 boss): heaving rot-mass of faces and arms. 120x120.
+    this.stamp(['boss_amalgam'], 120, 120, (g) => {
+      const rot = 0x5a7a3a;
+      const dark = 0x2e4a1e;
+      const flesh = 0x8a9a6a;
+      // lumpy mass base
+      g.fillStyle(rot, 1);
+      const blobs = [[40, 74, 26], [62, 82, 30], [84, 72, 24], [52, 52, 24], [74, 48, 22], [62, 34, 18]];
+      for (const [bx, by, br] of blobs) g.fillCircle(bx, by, br);
+      g.fillStyle(flesh, 1);
+      g.fillEllipse(48, 60, 26, 18);
+      g.fillEllipse(76, 78, 24, 16);
+      g.fillStyle(dark, 1);
+      for (const [dx, dy] of [[36, 88], [88, 60], [62, 100], [30, 60]]) g.fillEllipse(dx, dy, 14, 9);
+      // faces screaming out of the mass
+      const faces = [[44, 52], [74, 40], [84, 78], [50, 86]];
+      for (const [fx, fy] of faces) {
+        g.fillStyle(0xd8c8a8, 1);
+        g.fillCircle(fx, fy, 8);
+        g.fillStyle(INK, 1);
+        g.fillCircle(fx - 2.5, fy - 1, 1.6);
+        g.fillCircle(fx + 2.5, fy - 1, 1.6);
+        g.fillEllipse(fx, fy + 4, 5, 3.5);
+        g.lineStyle(2, INK, 1);
+        g.strokeCircle(fx, fy, 8);
+      }
+      // grasping arms with worm fingers
+      for (const [ax, ay, flip] of [[14, 60, -1], [106, 56, 1], [30, 100, -1]]) {
+        g.fillStyle(rot, 1);
+        g.fillRoundedRect(Math.min(ax, ax + flip * 22), ay - 6, 22, 12, 5);
+        g.fillStyle(flesh, 1);
+        for (let f = 0; f < 3; f++) {
+          g.fillTriangle(ax + flip * 22, ay - 4 + f * 4, ax + flip * 30, ay - 2 + f * 4, ax + flip * 22, ay + f * 4);
+        }
+        g.lineStyle(2, INK, 1);
+        g.strokeRoundedRect(Math.min(ax, ax + flip * 22), ay - 6, 22, 12, 5);
+      }
+      // drips
+      g.fillStyle(dark, 1);
+      for (const [dx, dy, dh] of [[46, 100, 12], [70, 104, 9], [90, 96, 11]]) {
+        g.fillRect(dx, dy, 5, dh);
+        g.fillCircle(dx + 2.5, dy + dh, 2.5);
+      }
+      g.lineStyle(4, INK, 1);
+      g.strokeCircle(40, 74, 26);
+      g.strokeCircle(62, 82, 30);
+      g.strokeCircle(84, 72, 24);
     });
 
     // ---------------- FLOOR (96x64) ----------------

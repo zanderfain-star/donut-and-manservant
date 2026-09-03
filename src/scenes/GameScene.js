@@ -80,6 +80,7 @@ const FLOORS = {
       [11000, 'Take the STAIRS DOWN →'],
     ],
     worldW: 3200, endX: 2600,
+    bg: 'bg_far', bgScroll: 0.2, floorTex: 'floor_tile', platformTint: 0x8a9ac0,
     clearTitle: 'THE WORLD ENDS!',
     clearSub: 'Carl runs into the dungeon… Floor 1 awaits.',
   },
@@ -153,6 +154,7 @@ const FLOORS = {
       [11000, 'HAM heals • STAR scores • take the STAIRS DOWN →'],
     ],
     worldW: 6400, endX: 6000,
+    bg: 'bg_far', bgScroll: 0.2, floorTex: 'floor_tile', platformTint: null,
     clearTitle: 'FLOOR 1 CLEARED!',
     clearSub: 'Carl and Donut take the stairs… Floor 2 awaits.',
   },
@@ -228,7 +230,162 @@ const FLOORS = {
       [8000, 'Take the STAIRS DOWN →'],
     ],
     worldW: 6400, endX: 6000,
+    bg: 'bg_cinder', bgScroll: 0.25, floorTex: 'floor_tile', platformTint: 0xffb080,
     clearTitle: 'FLOOR 2 CLEARED!',
+    clearSub: 'Down the dark they go… Floor 3 awaits.',
+  },
+  3: {
+    // FLOOR 3: THE OVER CITY — grey rubble, circus lights, crater's mold.
+    zones: [
+      { name: 'THE RUBBLE', x1: 0, x2: 2000, sub: 'Grey on grey on grey', banner: 0xb8b8c4, floor: 0xd0d0da },
+      { name: 'CIRCUS GROUNDS', x1: 2000, x2: 4200, sub: 'The show never stopped', banner: 0xc93d8a, floor: 0xe0c0da },
+      { name: 'THE CRATER', x1: 4200, x2: 6000, sub: 'Something skates down there', banner: 0x7a4a2a, floor: 0xffd0a8 },
+    ],
+    grades: [0x8a8aa0, 0xa04d8a, 0xff7a40],
+    checkpoints: [
+      { triggerX: 1900, respawnX: 1980, name: 'CIRCUS GATE' },
+      { triggerX: 3900, respawnX: 3980, name: 'CRATER GATE' },
+    ],
+    pits: [
+      { x1: 1600, x2: 1750 },
+      { x1: 3500, x2: 3650 },
+    ],
+    gates: [
+      { x: 2000, label: 'CIRCUS', color: 0xc93d8a },
+      { x: 4200, label: 'CRATER', color: 0x7a4a2a },
+    ],
+    platforms: [
+      [280, 580, 160, 8], [500, 540, 160, 8], [740, 500, 160, 8],
+      [980, 580, 160, 8], [1220, 530, 160, 8], [1440, 470, 160, 8],
+      [1820, 580, 192, 8], [2060, 520, 160, 8], [2300, 480, 160, 8],
+      [2540, 540, 160, 8], [2780, 580, 192, 8], [3020, 500, 160, 8],
+      [3260, 460, 160, 8], [3720, 580, 192, 8],
+      [3960, 580, 192, 8], [4200, 520, 160, 8], [4440, 480, 160, 8],
+      [4680, 520, 160, 8], [4920, 580, 192, 8], [5160, 500, 192, 8],
+      [5560, 540, 192, 8],
+    ],
+    spawns: [
+      { x: 420, type: 'goblin', range: 60 },
+      { x: 640, type: 'drek', range: 70 },
+      { x: 830, type: 'goblin', range: 60, py: 470 },
+      { x: 1100, type: 'rat', range: 70 },
+      { x: 1330, type: 'drek', range: 60, py: 440 },
+      { x: 1520, type: 'goblin', range: 60 },
+      { x: 1950, type: 'drek', range: 60 },
+      { x: 2200, type: 'tinker', range: 70, py: 490 },
+      { x: 2450, type: 'drek', range: 60 },
+      { x: 2700, type: 'goblin', range: 70 },
+      { x: 2950, type: 'trog', range: 60 },
+      { x: 3180, type: 'drek', range: 60, py: 470 },
+      { x: 3400, type: 'tinker', range: 60 },
+      { x: 4050, type: 'drek', range: 60 },
+      { x: 4300, type: 'trog', range: 60 },
+      { x: 4550, type: 'drek', range: 70, py: 450 },
+      { x: 4800, type: 'goblin', range: 70 },
+      { x: 5050, type: 'tinker', range: 60 },
+      { x: 5300, type: 'trog', range: 60 },
+      { x: 5520, type: 'drek', range: 60 },
+      { x: 5720, type: 'heather', range: 0 },
+    ],
+    pickups: [
+      [600, 510, 'star'], [1000, 550, 'ham'], [1300, 'GY', 'crystal'], [1540, 440, 'star'],
+      [2050, 'GY', 'star'], [2280, 490, 'crystal'], [2560, 'GY', 'ham'], [2900, 'GY', 'star'],
+      [3120, 470, 'crystal'], [3350, 'GY', 'ham'], [3600, 'GY', 'star'], [3800, 'GY', 'crystal'],
+      [4100, 'GY', 'ham'], [4350, 450, 'star'], [4480, 'GY', 'box'], [4750, 'GY', 'crystal'],
+      [5000, 470, 'star'], [5280, 'GY', 'ham'], [5450, 'GY', 'box'], [5660, 'GY', 'star'],
+    ],
+    boss: {
+      type: 'heather', name: 'HEATHER', sub: '★ MOLD BEAR ★ SKATES OF DOOM',
+      roar: 'HONK!', roarToast: 'HONK! The rink is CLOSED!',
+      killToast: 'BEAR NECESSITY AVERTED',
+    },
+    tips: [
+      [1200, 'Floor 3: the Over City. Everything is grey. Everything bites.'],
+      [4500, 'Drek swarm! Stomp the pack!'],
+      [8000, 'Heather skates the crater. Take the STAIRS DOWN →'],
+    ],
+    worldW: 6400, endX: 6000,
+    bg: 'bg_overcity', bgScroll: 0.22, floorTex: 'rubble_tile', platformTint: 0xc0c0cc,
+    clearTitle: 'FLOOR 3 CLEARED!',
+    clearSub: 'The tent folds… Floor 4 awaits.',
+  },
+  4: {
+    // FLOOR 4: THE IRON TANGLE — the map IS the Nightmare Express.
+    // Car roofs for floor, car gaps for pits. Tunnel streams past.
+    zones: [
+      { name: 'NIGHTMARE CARS', x1: 0, x2: 2000, sub: 'All aboard. No refunds.', banner: 0xe02020, floor: 0xd8d8e0 },
+      { name: 'TRANSFER MAZE', x1: 2000, x2: 4200, sub: 'Mind the gap. Seriously.', banner: 0x4df3ff, floor: 0xc8d8e8 },
+      { name: 'ABYSS EDGE', x1: 4200, x2: 6000, sub: 'Last stop: everywhere', banner: 0xff7a30, floor: 0xffd8b8 },
+    ],
+    grades: [0x8a2a3a, 0x2a6a8a, 0xff6a30],
+    checkpoints: [
+      { triggerX: 1620, respawnX: 1700, name: 'TRANSFER GATE' },
+      { triggerX: 3570, respawnX: 3650, name: 'ABYSS GATE' },
+    ],
+    pits: [
+      { x1: 1400, x2: 1550 },
+      { x1: 3300, x2: 3450 },
+    ],
+    gates: [
+      { x: 2000, label: 'TRANSFER', color: 0x4df3ff },
+      { x: 4200, label: 'ABYSS', color: 0xff7a30 },
+    ],
+    platforms: [
+      [260, 580, 160, 8], [480, 540, 160, 8], [700, 500, 160, 8],
+      [920, 580, 160, 8], [1140, 540, 160, 8], [1620, 580, 192, 8],
+      [1860, 520, 160, 8], [2100, 480, 160, 8], [2340, 540, 160, 8],
+      [2580, 580, 192, 8], [2820, 500, 160, 8], [3060, 460, 160, 8],
+      [3520, 580, 192, 8],
+      [3720, 580, 192, 8], [3960, 520, 160, 8], [4200, 480, 160, 8],
+      [4440, 520, 160, 8], [4680, 580, 192, 8], [4920, 500, 192, 8],
+      [5160, 540, 192, 8], [5560, 540, 192, 8],
+    ],
+    spawns: [
+      { x: 400, type: 'drek', range: 60 },
+      { x: 620, type: 'goblin', range: 60 },
+      { x: 800, type: 'drek', range: 60, py: 470 },
+      { x: 1050, type: 'rat', range: 70 },
+      { x: 1250, type: 'tinker', range: 60 },
+      { x: 1700, type: 'goblin', range: 60 },
+      { x: 1950, type: 'drek', range: 70, py: 490 },
+      { x: 2200, type: 'rat', range: 60 },
+      { x: 2450, type: 'goblin', range: 70 },
+      { x: 2700, type: 'tinker', range: 60 },
+      { x: 2950, type: 'drek', range: 60, py: 470 },
+      { x: 3180, type: 'goblin', range: 60 },
+      { x: 3600, type: 'drek', range: 60 },
+      { x: 3850, type: 'trog', range: 60 },
+      { x: 4100, type: 'tinker', range: 70, py: 450 },
+      { x: 4350, type: 'drek', range: 60 },
+      { x: 4550, type: 'goblin', range: 70 },
+      { x: 4800, type: 'rat', range: 60 },
+      { x: 5050, type: 'trog', range: 60 },
+      { x: 5280, type: 'drek', range: 60 },
+      { x: 5500, type: 'goblin', range: 60 },
+      { x: 5720, type: 'amalgam', range: 0 },
+    ],
+    pickups: [
+      [560, 510, 'star'], [950, 550, 'ham'], [1200, 'GY', 'crystal'], [1560, 440, 'star'],
+      [1900, 'GY', 'ham'], [2150, 450, 'star'], [2400, 'GY', 'crystal'], [2650, 'GY', 'star'],
+      [2900, 470, 'ham'], [3110, 'GY', 'crystal'], [3400, 'GY', 'star'], [3660, 'GY', 'ham'],
+      [3900, 'GY', 'crystal'], [4150, 450, 'star'], [4300, 'GY', 'box'], [4520, 'GY', 'ham'],
+      [4780, 470, 'star'], [5000, 'GY', 'crystal'], [5220, 'GY', 'box'], [5450, 'GY', 'star'],
+      [5660, 'GY', 'ham'],
+    ],
+    boss: {
+      type: 'amalgam', name: 'GHOUL AMALGAM', sub: '★ FESTERING MASS ★ ALL ABOARD',
+      roar: 'BLORP!', roarToast: 'BLORP! No ticket? No problem. You are the ticket.',
+      killToast: 'COMPOSTED',
+    },
+    tips: [
+      [1200, 'Floor 4: the Nightmare Express. Do NOT miss your stop.'],
+      [4500, 'MIND THE GAP. The gaps are real.'],
+      [8000, 'Something festering guards the stairs →'],
+    ],
+    worldW: 6400, endX: 6000,
+    bg: 'bg_tunnel', bgScroll: 0.5, floorTex: 'train_roof', platformTint: 0x9ab8d8,
+    stream: true,
+    clearTitle: 'FLOOR 4 CLEARED!',
     clearSub: 'The dungeon shudders below… TO BE CONTINUED.',
   },
 };
@@ -243,6 +400,12 @@ const MONGO_LEVELS = [
   { scale: 1.4, chew: 0.4, speed: 380, leash: 620 },   // LV 4 — cinders teen
   { scale: 1.5, chew: 0.35, speed: 400, leash: 700 },  // LV 5 — lichen hunter
   { scale: 1.6, chew: 0.3, speed: 420, leash: 780 },   // LV 6 — pound terror
+  { scale: 1.7, chew: 0.3, speed: 440, leash: 860 },   // LV 7 — rubble teen
+  { scale: 1.8, chew: 0.28, speed: 460, leash: 940 },  // LV 8 — circus hand
+  { scale: 1.9, chew: 0.25, speed: 480, leash: 1020 }, // LV 9 — crater kid
+  { scale: 2.0, chew: 0.25, speed: 500, leash: 1100 }, // LV 10 — conductor
+  { scale: 2.1, chew: 0.22, speed: 520, leash: 1180 }, // LV 11 — brakeman
+  { scale: 2.2, chew: 0.2, speed: 540, leash: 1260 },  // LV 12 — abyss terror
 ];
 // Guard instinct: a dangerous mob THIS close to Donut triggers full recall.
 // Anything farther just tightens his leash (min 60px) so he still darts out
@@ -262,6 +425,12 @@ const ENEMY_TYPES = {
   swine: { hp: 12, speed: 55, score: 1000, scale: 1.0, tint: 0xffffff, label: 'BALL OF SWINE', tex: 'boss_swine', feet: 58, body: [90, 100], off: [15, 18] },
   // RALPH — Floor 2 frenzied gerbil. Faster, frailer, same porkchop energy.
   ralph: { hp: 8, speed: 95, score: 1500, scale: 1.0, tint: 0xffffff, label: 'RALPH', tex: 'boss_ralph', feet: 58, body: [90, 100], off: [15, 18] },
+  // DREK — knee-high demonic infant. Fast, weak, swarms in 3-4.
+  drek: { hp: 1, speed: 230, score: 60, scale: 0.9, tint: 0xffffff, label: 'DREK', tex: 'enemy_drek', feet: 24, body: [40, 44], off: [8, 4] },
+  // HEATHER — Floor 3 mold bear on skates. Quick for her size.
+  heather: { hp: 10, speed: 70, score: 2000, scale: 1.0, tint: 0xffffff, label: 'HEATHER', tex: 'boss_heather', feet: 58, body: [90, 100], off: [15, 18] },
+  // GHOUL AMALGAM — Floor 4 festering mass. Slow, enormous HP pool feel.
+  amalgam: { hp: 14, speed: 45, score: 2500, scale: 1.0, tint: 0xffffff, label: 'GHOUL AMALGAM', tex: 'boss_amalgam', feet: 58, body: [90, 100], off: [15, 18] },
 };
 
 // Dungeon Crawler World chat: cheers that pop over kills (reader easter egg).
@@ -397,7 +566,7 @@ export class GameScene extends Phaser.Scene {
     // Playstyle stats for the end-of-floor goofy achievements.
     this.stats = {
       punch: 0, stomp: 0, magic: 0, mongo: 0, casts: 0,
-      dmg: 0, pits: 0, ham: 0, star: 0, crystal: 0, box: 0, swine: 0, ralph: 0,
+      dmg: 0, pits: 0, ham: 0, star: 0, crystal: 0, box: 0, swine: 0, ralph: 0, heather: 0, amalgam: 0,
       t0: this.time.now,
     };
     // Zones visited (per floor) — SIGHTSEER needs all three.
@@ -493,11 +662,14 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setDeadzone(40, 30);
     this.cameras.main.setLerp(0.5, 0.5);
 
-    this.bgFar = this.add.tileSprite(0, 0, this.worldW, WORLD_HEIGHT, 'bg_far')
+    // Per-floor backdrop (F4's tunnel streams in update()).
+    this.bgStreaming = FLOORS[this.floor].stream === true;
+    this.bgFar = this.add.tileSprite(0, 0, this.worldW, WORLD_HEIGHT, FLOORS[this.floor].bg)
       .setOrigin(0, 0)
-      .setScrollFactor(0.2, 0)
+      .setScrollFactor(FLOORS[this.floor].bgScroll || 0.2, 0)
       .setDepth(0)
       .setAlpha(0.6);
+    if (this.floor === 4) this.buildTrainFx();
 
     // Per-zone color grade: tunnels warm, garbage sickly violet, gym hot.
     // A whisper of a wash (alpha ~0.05) — enough to feel the descent
@@ -534,7 +706,34 @@ export class GameScene extends Phaser.Scene {
    * WORLD BUILDING
    * ========================================================== */
 
+  // Iron Tangle motion kit: station signs whip past + the whole train hums.
+  buildTrainFx() {
+    this.trainSigns = ['STATION 112', 'RED LINE', 'MIND THE GAP', 'ABYSS 436 →'];
+    this.trainSignIdx = 0;
+    this.time.addEvent({
+      delay: 4200, loop: true,
+      callback: () => {
+        if (this.dead || this.won) return;
+        const label = this.trainSigns[this.trainSignIdx % this.trainSigns.length];
+        this.trainSignIdx += 1;
+        const sign = this.add.text(
+          this.cameras.main.scrollX + 1400, 180, `◤ ${label} ◢`,
+          {
+            fontFamily: '"Courier New", monospace', fontSize: '26px', fontStyle: 'bold',
+            color: '#7affff', backgroundColor: '#0a0a12', padding: { x: 12, y: 8 },
+          },
+        ).setDepth(1).setAlpha(0.95);
+        this.tweens.add({
+          targets: sign, x: this.cameras.main.scrollX - 500, duration: 2600, ease: 'Linear',
+          onComplete: () => sign.destroy(),
+        });
+      },
+    });
+  }
+
   buildBackground() {
+    // 'bg_far' serves floors 0-1; F2+ backdrops come from BootScene stamps.
+    if (this.floor > 1) return;
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     const W = 1024;
     const H = WORLD_HEIGHT;
@@ -569,7 +768,7 @@ export class GameScene extends Phaser.Scene {
     // Top layer — tinted per zone so each third of the run reads differently.
     for (let x = 0; x < this.worldW; x += 96) {
       if (isInPit(x)) continue;
-      const tile = this.floorGroup.create(x + 48, FLOOR_Y + 32, 'floor_tile');
+      const tile = this.floorGroup.create(x + 48, FLOOR_Y + 32, FLOORS[this.floor].floorTex);
       tile.setTint(this.zoneAt(x + 48).floor);
       tile.refreshBody();
     }
@@ -579,7 +778,7 @@ export class GameScene extends Phaser.Scene {
       const darker = layer === 1 ? 0x1a1208 : layer === 2 ? 0x140e06 : layer === 3 ? 0x0e0a04 : 0x080602;
       for (let x = 0; x < this.worldW; x += 96) {
         if (isInPit(x)) continue;
-        const tile = this.floorGroup.create(x + 48, yOffset, 'floor_tile');
+        const tile = this.floorGroup.create(x + 48, yOffset, FLOORS[this.floor].floorTex);
         tile.setTint(darker);
         tile.refreshBody();
       }
@@ -606,9 +805,10 @@ export class GameScene extends Phaser.Scene {
       step.setData('topY', y);
       this.platformGroup.add(step);
       this.platformTops.push({ x1: x, x2: x + w, top: y });
-      this.add.image(x + w / 2, y + 20, 'platform')
+      const plat = this.add.image(x + w / 2, y + 20, 'platform')
         .setDisplaySize(w, 40)
         .setDepth(3);
+      if (FLOORS[this.floor].platformTint) plat.setTint(FLOORS[this.floor].platformTint);
     }
   }
 
@@ -818,6 +1018,8 @@ export class GameScene extends Phaser.Scene {
     // Progression (how far / what you beat)
     if (s.swine > 0) A('piggy', 'THIS LITTLE PIGGY', 'Went to market. Permanently.');
     if (s.ralph > 0) A('gerbil', 'POP GOES THE GERBIL', 'Squeak. Squeak. Silence.');
+    if (s.heather > 0) A('bear', 'BEAR NECESSITY AVERTED', 'The rink is closed. Forever.');
+    if (s.amalgam > 0) A('compost', 'COMPOSTED', 'Reduced, reused, recycled.');
     if (s.mongo > 0) A('souschef', 'SOUS CHEF', `Mongo pre-chewed ${s.mongo} rat${s.mongo > 1 ? 's' : ''}. Health code violation.`);
     if (this.mongoLevel >= 3) A('bigboy', 'BIG BOY', '12 pounds of raptor. All of it hungry.');
     if (this.visitedZones.size >= 3) A('sightseer', 'SIGHTSEER', 'Saw every zone. Smelled every zone.');
@@ -887,7 +1089,7 @@ export class GameScene extends Phaser.Scene {
     const viewH = 720;
     const groundH = 80;
     const groundY = viewH - groundH;
-    this.groundPanel = this.add.tileSprite(0, groundY, viewW * 2, groundH, 'floor_tile')
+    this.groundPanel = this.add.tileSprite(0, groundY, viewW * 2, groundH, FLOORS[this.floor].floorTex || 'floor_tile')
       .setOrigin(0, 0)
       .setScrollFactor(0, 0)
       .setDepth(50)
@@ -1175,13 +1377,13 @@ export class GameScene extends Phaser.Scene {
       e.setScale(t.scale);
       e.body.setSize(t.body[0], t.body[1]).setOffset(t.off[0], t.off[1]);
       e.setDepth(15);
-      e.hp = t.hp + (s.type === 'trog' ? (gi >= 4 ? 2 : gi >= 2 ? 1 : 0) : 0);
+      e.hp = t.hp + (s.type === 'trog' ? (gi >= 7 ? 3 : gi >= 4 ? 2 : gi >= 2 ? 1 : 0) : 0);
       e.maxHp = e.hp;
       e.alive = true;
       e.etype = s.type;
       e.label = t.label;
       e.feetScaled = feetScaled;
-      e.speed = Math.round(t.speed * (1 + 0.12 * gi));
+      e.speed = Math.round(t.speed * Math.min(1 + 0.12 * gi, 1.8));
       e.spitCdBase = (2200 + Math.random() * 800) * Math.max(0.4, 1 - 0.15 * gi);
       e.scoreValue = t.score;
       e.patrolHomeX = s.x;
@@ -1362,10 +1564,12 @@ export class GameScene extends Phaser.Scene {
     if (e.hpText) e.hpText.destroy();
 
     // BOSS DOWN: dome drops, stairs open, canon achievement toast.
-    // Per-boss counters — the Piggy plaque needs a real pig.
+    // Per-boss counters — plaques need the real thing.
     if (e.etype === this.bossType) {
       if (e.etype === 'swine') this.stats.swine += 1;
-      else this.stats.ralph += 1;
+      else if (e.etype === 'ralph') this.stats.ralph += 1;
+      else if (e.etype === 'heather') this.stats.heather += 1;
+      else if (e.etype === 'amalgam') this.stats.amalgam += 1;
       this.cameras.main.shake(400, 0.012);
       this.cameras.main.flash(300, 255, 138, 160);
       for (let i = 0; i < 3; i++) {
@@ -1758,6 +1962,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.updateEnemies(dt, time);
+
+    // Iron Tangle express: the tunnel streams past (480px/s) while the
+    // train-map itself stays put under Carl's feet.
+    if (this.bgStreaming && this.bgFar) {
+      this.bgFar.tilePositionX += 480 * dt;
+    }
 
     // Failsafe: fell out of the world somehow → treat as pit.
     if (this.player.y > WORLD_HEIGHT + 200) this.pitFall();

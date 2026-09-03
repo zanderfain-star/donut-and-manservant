@@ -59,7 +59,30 @@ Floor 2 — same engine, meaner dungeon:
 | ★ | RALPH — frenzied gerbil | ~5400–6010 | fast roller (95), 8 HP (max 2/hit) |
 
 Mongo keeps leveling (LV 4–6: bigger, 0.4s→0.3s chews, 780 leash).
-Floor 2 clear = TO BE CONTINUED (Floor 3 not built yet).
+
+Floor 3 — THE OVER CITY (Book 2: grey rubble, circus lights, crater mold):
+
+| # | Zone | Threat |
+|---|------|--------|
+| 1 | THE RUBBLE — Grey on grey on grey | goblins, rats, DREK swarmers |
+| 2 | CIRCUS GROUNDS — The show never stopped | tinkers, trogs, drek |
+| 3 | THE CRATER — Something skates down there | heavies + drek |
+| ★ | HEATHER — mold bear on skates | 10 HP (max 2/hit), fast for her size |
+
+New mob: DREK (knee-high demonic infant, fast, 1 HP). Mongo LV 7–9.
+
+Floor 4 — THE IRON TANGLE (Book 3: the map IS the Nightmare Express):
+
+| # | Zone | Threat |
+|---|------|--------|
+| 1 | NIGHTMARE CARS — All aboard. No refunds. | drek + goblins on the roofs |
+| 2 | TRANSFER MAZE — Mind the gap. Seriously. | tinkers, trogs, car-gap pits |
+| 3 | ABYSS EDGE — Last stop: everywhere | everything, faster |
+| ★ | GHOUL AMALGAM — festering mass | 14 HP (max 2/hit), slow |
+
+Train rules: steel roof floor, car gaps are pits, tunnel background streams
+past (480px/s) with station signs (STATION 112, RED LINE, MIND THE GAP,
+ABYSS 436). Mongo LV 10–12. Floor 4 clear = TO BE CONTINUED.
 
 ## Goal
 
