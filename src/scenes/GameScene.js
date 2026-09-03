@@ -244,8 +244,10 @@ const MONGO_LEVELS = [
   { scale: 1.5, chew: 0.35, speed: 400, leash: 700 },  // LV 5 — lichen hunter
   { scale: 1.6, chew: 0.3, speed: 420, leash: 780 },   // LV 6 — pound terror
 ];
-// Guard instinct: baddies this close to Donut (px) trigger full recall.
-const MONGO_PANIC = 180;
+// Guard instinct: a dangerous mob THIS close to Donut triggers full recall.
+// Anything farther just tightens his leash (min 60px) so he still darts out
+// for rats instead of cowering home for the whole room.
+const MONGO_PANIC = 70;
 
 // Book-aligned Floor 1 roster (DCC Book 1: goblins, rats, troglodytes).
 // body/off are Arcade-physics rects in TEXTURE px, bottom-aligned so visual
@@ -1515,14 +1517,17 @@ export class GameScene extends Phaser.Scene {
     // baddies far → full leash; closing in → leash tightens to her side;
     // on top of her (panic) → drop everything non-urgent and come home.
     const momX = this.donutVis.x;
+    // Threats are the DANGEROUS mobs — rats are prey, not a threat, and
+    // must never trigger the guard (or Mongo would cower home forever in
+    // packed rooms instead of hunting).
     let threat = Infinity;
     this.enemies.getChildren().forEach((e) => {
-      if (!e.alive) return;
+      if (!e.alive || e.etype === 'rat') return;
       const d = Math.abs(e.x - momX);
       if (d < threat) threat = d;
     });
     const panic = threat < MONGO_PANIC;
-    const leash = panic ? 0 : Math.min(L.leash, Math.max(120, threat));
+    const leash = panic ? 0 : Math.min(L.leash, Math.max(60, threat));
     const homeX = momX - this.carlVis.facing * 40;
     // Validate current target (leash measured from Mommy, not Mongo)
     const tgt = this.mongoTarget;
@@ -1585,7 +1590,7 @@ export class GameScene extends Phaser.Scene {
       // --- pick a job: nearest rat inside the (threat-tightened) leash
       // beats a corpse. Rats only — brave, not stupid.
       let rat = null;
-      const rd = leash;
+      let rd = leash;
       this.enemies.getChildren().forEach((e) => {
         if (!e.alive || e.etype !== 'rat') return;
         const d = Math.abs(e.x - momX);
