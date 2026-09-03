@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="10" fill="#0a0a0a"/>
+  <rect x="3" y="3" width="58" height="58" rx="8" fill="none" stroke="#f4ecd8" stroke-width="2"/>
+  <!-- donut ring -->
+  <circle cx="32" cy="36" r="18" fill="#f0a040"/>
+  <circle cx="32" cy="36" r="18" fill="none" stroke="#080808" stroke-width="3"/>
+  <circle cx="32" cy="36" r="7" fill="#0a0a0a"/>
+  <circle cx="32" cy="36" r="7" fill="none" stroke="#f4ecd8" stroke-width="2"/>
+  <!-- sprinkles -->
+  <rect x="22" y="26" width="6" height="2.6" rx="1" fill="#ff3d6e" transform="rotate(25 25 27)"/>
+  <rect x="36" y="28" width="6" height="2.6" rx="1" fill="#6effff" transform="rotate(-20 39 29)"/>
+  <rect x="26" y="42" width="6" height="2.6" rx="1" fill="#ffb000" transform="rotate(-30 29 43)"/>
+  <rect x="38" y="42" width="6" height="2.6" rx="1" fill="#f4ecd8" transform="rotate(30 41 43)"/>
+  <!-- tiny crown -->
+  <path d="M24 12 L26 6 L30 10 L32 4 L34 10 L38 6 L40 12 Z" fill="#ffd020" stroke="#080808" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>

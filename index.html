@@ -3,8 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Donut &amp; Manservant</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content="Donut & Manservant — Floor 1: Descent. A bold cartoon dungeon sidescroller starring Carl and Donut the crowned cat. Built with Phaser 3 + Vite." />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta property="og:title" content="Donut & Manservant — Floor 1: Descent" />
+    <meta property="og:description" content="Punch, stomp, and cast eye-rockets through the dungeon. Take the stairs down!" />
+    <meta property="og:type" content="website" />
+    <title>Donut &amp; Manservant — Floor 1: Descent</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <style>
       :root {
         --ink: #0a0a0a;
@@ -13,11 +18,17 @@
         --donut: #ff3d6e;
         --magic: #6effff;
       }
+      * {
+        box-sizing: border-box;
+      }
       html,
       body {
         margin: 0;
         padding: 0;
         background: var(--ink);
+        /* Comic print: halftone dots over ink */
+        background-image: radial-gradient(rgba(244, 236, 216, 0.055) 1px, transparent 1.4px);
+        background-size: 14px 14px;
         color: var(--paper);
         font-family: 'Courier New', monospace;
         overflow: hidden;
@@ -28,10 +39,24 @@
         align-items: center;
         justify-content: center;
         height: 100vh;
+        height: 100dvh;
+        padding: 12px;
       }
       canvas {
-        image-rendering: pixelated;
-        box-shadow: 0 0 40px rgba(110, 255, 255, 0.15);
+        image-rendering: auto;
+        /* Comic cover frame around the canvas */
+        border: 5px solid #080808;
+        outline: 2px solid var(--paper);
+        outline-offset: 3px;
+        box-shadow: 0 0 40px rgba(110, 255, 255, 0.15), 0 0 90px rgba(255, 61, 110, 0.12);
+        background: #000;
+        /* Scale-to-fit: never exceed 1280x720, shrink to viewport */
+        max-width: min(1280px, calc(100vw - 24px));
+        max-height: min(720px, calc(100vh - 24px));
+        max-height: min(720px, calc(100dvh - 24px));
+        width: auto;
+        height: auto;
+        aspect-ratio: 16 / 9;
       }
     </style>
   </head>

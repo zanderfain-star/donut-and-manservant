@@ -1,413 +1,597 @@
 import Phaser from 'phaser';
 
 /*
- * SpriteFactory
- * --------------
- * Builds cel-shaded, ink-outlined Carl and Donut entities as Phaser
- * Containers, generated entirely from Graphics primitives (no image assets).
+ * SpriteFactory — BOLD CARTOON / COMIC PASS
+ * ----------------------------------------
+ * Cel-shaded, thick-ink Carl and Donut entities as Phaser Containers,
+ * generated entirely from Graphics primitives (no image assets).
+ *
+ * Style rules (Dungeon Crawler Carl cover vibe):
+ *   - Ink color #14101a everywhere, 2-3px internal strokes. The outer
+ *     4px+ border comes from the outline-sprite-behind trick (outline
+ *     texture = full silhouette in ink, scaled 1.08-1.10 behind color).
+ *   - Flat punchy fills + one cel highlight blob + one shadow shape.
+ *   - Must read at 96px on screen (1.5x scale).
+ *
+ * Reference art: @johnrubio fan art of Carl and Donut from
+ * "Dungeon Crawler Carl" by Matt Dinniman.
  *
  * Each entity is a Phaser.Container that wraps:
- *   [0] outlineSprite  — the same silhouette painted in pure black, scaled 1.08
+ *   [0] outlineSprite  — the same silhouette painted in pure ink, scaled up
  *   [1] colorSprite    — the full-color cel-shaded art on top
  *
- * The "outline behind, color in front" trick gives bold ink lines without
- * needing per-frame vector outlines. Real pixel-art can later swap in by
- * replacing the two textures; the public API stays identical.
+ * PUBLIC API (do not change — GameScene/MenuScene depend on it):
+ *   static generate(scene)
+ *   static createCarl(scene, x, y)  -> Container
+ *   static createDonut(scene, x, y) -> Container
+ * Container fields: .facing, .setFacing(dir), .playWalk(), .playIdle(),
+ *   .colorSprite, .outlineSprite, (Donut also ._floatOffsetY)
  */
 
+const CARL_W = 96;
+const CARL_H = 128;
+const DONUT_W = 64;
+const DONUT_H = 64;
+
+const CARL_POSES = ['idle', 'run1', 'run2'];
+
 const TEXTURE_KEYS = {
-  carlOutline: 'carl_outline',
-  carlColor: 'carl_color',
+  carlOutline: { idle: 'carl_outline_idle', run1: 'carl_outline_run1', run2: 'carl_outline_run2' },
+  carlColor: { idle: 'carl_color_idle', run1: 'carl_color_run1', run2: 'carl_color_run2' },
   donutOutline: 'donut_outline',
   donutColor: 'donut_color',
 };
 
+const INK = 0x14101a;
+
 const COLORS = {
-  // Carl from Dungeon Crawler Carl — bare-chested, white boxers with red
-  // hearts, only the LEFT sleeve of his jacket remains, plus spiky knee pads.
-  // He's a chaos agent, not a hazmat worker. Make him WHITE+RED so he pops
-  // like a beacon against the dark floor.
-  carlSkin: 0xffd0a0,         // bright peachy skin tone
-  carlSkinShadow: 0xd09060,
-  carlSkinHighlight: 0xffe8c0,
-  carlBoxer: 0xffffff,        // PURE WHITE boxers
-  carlBoxerShadow: 0xe0e0e0,
-  carlHeart: 0xff0030,        // ULTRA bright red hearts
-  carlHeartShadow: 0xa00010,
-  carlJacket: 0x8a5a30,       // brighter brown leather jacket
-  carlJacketDark: 0x5a3a20,
-  carlKneePad: 0xff8000,      // bright orange knee pads
-  carlKneeSpike: 0xffff60,    // bright yellow spikes
-  carlKneePadDark: 0xc04000,
-  // Donut — fluffy pink cat, mostly pink
-  donutFur: 0xff4f8b,
-  donutFurShadow: 0xc42866,
-  donutFurHighlight: 0xffb3cf,
-  donutSclera: 0xffffff,
-  donutIris: 0x6effff,
-  donutPupil: 0x101020,
-  donutCheek: 0xff7aa8,
-  // Outline / ink
-  ink: 0x080808,
+  // CARL
+  skin: 0xffb066,
+  skinShadow: 0xd97a2e,
+  skinHi: 0xffd9a0,
+  hair: 0xe02020,
+  hairDark: 0x7a1010,
+  hairHi: 0xff7a50,
+  stubble: 0x5a3020,
+  eyeWhite: 0xffffff,
+  boxer: 0xfff6e5,
+  boxerShadow: 0xd8b890,
+  heart: 0xe02040,
+  brass: 0xf5b83d,
+  brassDark: 0x9a6420,
+  brassHi: 0xffe9a0,
+  wrap: 0xe02020,
+  wrapDark: 0x7a1010,
+  cape: 0xe02020,
+  capeDark: 0x7a1010,
+  // DONUT — fluffy orange tabby Persian
+  fur: 0xff9a2e,
+  furDark: 0xc25a10,
+  furLight: 0xffd9a0,
+  cream: 0xfff0d0,
+  iris: 0xb8ff20,
+  irisBright: 0xe8ff80,
+  pupil: 0x14101a,
+  nose: 0xff5070,
+  innerEar: 0xffa080,
+  crown: 0xffd020,
+  crownDark: 0x9a6420,
+  crownHi: 0xfff080,
+  gem: 0xff3060,
 };
 
 /* ------------------------------------------------------------------ */
-/* Texture generation                                                   */
+/* Helpers                                                              */
 /* ------------------------------------------------------------------ */
 
-/**
- * Draw the Carl silhouette paths. Used twice: once in black (outline),
- * once in full cel-shaded color. All paths are anchored at (0,0) and
- * fit within the 48x64 frame.
- */
-function drawCarlPaths(g, opts) {
-  const c = opts.colors;
-  const skin = c.carlSkin;
-  const skinShadow = c.carlSkinShadow;
-  const skinHighlight = c.carlSkinHighlight;
-  const boxer = c.carlBoxer;
-  const boxerShadow = c.carlBoxerShadow;
-  const heart = c.carlHeart;
-  const heartShadow = c.carlHeartShadow;
-  const jacket = c.carlJacket;
-  const jacketDark = c.carlJacketDark;
-  const kneePad = c.carlKneePad;
-  const kneeSpike = c.carlKneeSpike;
-  const kneePadDark = c.carlKneePadDark;
-  const ink = c.ink;
-  const outlineOnly = !!opts.outlineOnly;
-
-  const fill = (color, alpha = 1) => g.fillStyle(color, alpha);
-
-  // ----- HEAD (bare, with beard stubble) -----
-  // Round head shape
-  fill(outlineOnly ? ink : skin);
-  g.fillCircle(24, 11, 8);
-
-  // Face shading (right side darker)
-  if (!outlineOnly) {
-    fill(skinShadow, 0.7);
-    g.fillCircle(28, 12, 5);
-  }
-
-  // Eyes — small dark dots, intense stare
-  if (!outlineOnly) {
-    fill(ink, 1);
-    g.fillRect(20, 9, 2, 2);
-    g.fillRect(26, 9, 2, 2);
-  }
-
-  // Mouth (smirk)
-  if (!outlineOnly) {
-    fill(ink, 1);
-    g.fillRect(22, 14, 4, 1);
-  }
-
-  // ----- NECK + BARELY-THERE JACKET LEFT SLEEVE -----
-  // Neck (skin)
-  fill(outlineOnly ? ink : skin);
-  g.fillRect(20, 17, 8, 4);
-
-  // JACKET: only the LEFT sleeve + a torn lapel piece on the left shoulder.
-  // The right side of his torso is BARE — you can see his skin, boxers, and
-  // bare chest.
-  if (!outlineOnly) {
-    // Left shoulder lapel (torn, hanging)
-    fill(jacket, 1);
-    g.fillTriangle(8, 22, 18, 22, 14, 30);
-    fill(jacketDark, 1);
-    g.fillTriangle(8, 22, 12, 22, 10, 28);
-
-    // Left sleeve hanging down — torn at the end
-    fill(jacket, 1);
-    g.fillRect(2, 22, 6, 16);
-    fill(jacketDark, 1);
-    g.fillRect(2, 22, 2, 16); // shadow on left edge
-
-    // Torn sleeve frays at the bottom
-    fill(jacketDark, 1);
-    g.fillTriangle(2, 38, 4, 42, 6, 38);
-    g.fillTriangle(4, 38, 6, 41, 8, 38);
-  }
-  if (outlineOnly) {
-    // Outline pass: include the sleeve silhouette
-    g.fillRect(2, 22, 6, 16);
-  }
-
-  // ----- BARE CHEST (right side, since jacket only covers left) -----
-  // Right side shows skin all the way down
-  if (!outlineOnly) {
-    fill(skin, 1);
-    g.fillRect(30, 22, 12, 22);
-    fill(skinShadow, 0.6);
-    g.fillRect(36, 24, 6, 18);
-  }
-
-  // Belly suggestion — a subtle midline
-  if (!outlineOnly) {
-    fill(skinShadow, 0.4);
-    g.fillRect(23, 26, 2, 16);
-  }
-
-  // ----- BOXERS (white with red hearts) -----
-  fill(outlineOnly ? ink : boxer);
-  g.fillRect(14, 38, 20, 8);
-  if (!outlineOnly) {
-    // Shading
-    fill(boxerShadow, 0.5);
-    g.fillRect(14, 42, 20, 4);
-    // Waistband
-    fill(boxerShadow, 1);
-    g.fillRect(14, 38, 20, 2);
-  }
-
-  // Red hearts on the boxers (3 of them)
-  if (!outlineOnly) {
-    fill(heart, 1);
-    // Heart 1
-    g.fillCircle(18, 44, 1.5);
-    g.fillCircle(20, 44, 1.5);
-    g.fillTriangle(17, 45, 21, 45, 19, 47);
-    // Heart 2
-    g.fillCircle(23, 44, 1.5);
-    g.fillCircle(25, 44, 1.5);
-    g.fillTriangle(22, 45, 26, 45, 24, 47);
-    // Heart 3
-    g.fillCircle(28, 44, 1.5);
-    g.fillCircle(30, 44, 1.5);
-    g.fillTriangle(27, 45, 31, 45, 29, 47);
-  }
-
-  // ----- LEGS (skin, bare) -----
-  if (!outlineOnly) {
-    fill(skin, 1);
-    g.fillRect(15, 46, 7, 14);
-    g.fillRect(26, 46, 7, 14);
-    fill(skinShadow, 0.6);
-    g.fillRect(20, 46, 2, 14);
-    g.fillRect(31, 46, 2, 14);
-  }
-  if (outlineOnly) {
-    g.fillRect(15, 46, 7, 14);
-    g.fillRect(26, 46, 7, 14);
-  }
-
-  // ----- KNEE PADS (spiky, bright orange-yellow) -----
-  // Big round pad on each knee with spikes
-  fill(outlineOnly ? ink : kneePad);
-  g.fillCircle(18, 54, 4);
-  g.fillCircle(30, 54, 4);
-
-  if (!outlineOnly) {
-    // Highlight on the pad
-    fill(kneeSpike, 1);
-    g.fillCircle(17, 53, 1.5);
-    g.fillCircle(29, 53, 1.5);
-    // Shadow under the pad
-    fill(kneePadDark, 1);
-    g.fillCircle(18, 56, 3);
-    g.fillCircle(30, 56, 3);
-  }
-
-  // Spikes coming off the pads (4 each)
-  if (!outlineOnly) {
-    fill(kneeSpike, 1);
-    // Left pad spikes
-    g.fillTriangle(14, 54, 12, 50, 16, 52);
-    g.fillTriangle(14, 54, 12, 58, 16, 56);
-    g.fillTriangle(18, 50, 18, 54, 22, 54);
-    g.fillTriangle(18, 54, 22, 54, 18, 58);
-    // Right pad spikes
-    g.fillTriangle(26, 54, 24, 50, 28, 52);
-    g.fillTriangle(26, 54, 24, 58, 28, 56);
-    g.fillTriangle(30, 50, 30, 54, 34, 54);
-    g.fillTriangle(30, 54, 34, 54, 30, 58);
-  }
-
-  // ----- FEET (bare, skin) -----
-  fill(outlineOnly ? ink : skin);
-  g.fillRect(14, 60, 9, 4);
-  g.fillRect(25, 60, 9, 4);
-  if (!outlineOnly) {
-    fill(skinShadow, 0.7);
-    g.fillRect(14, 62, 9, 2);
-    g.fillRect(25, 62, 9, 2);
-  }
+// In outline mode every color resolves to INK so the silhouette matches
+// the color pass geometry exactly.
+function comicPalette(outlineOnly) {
+  if (!outlineOnly) return COLORS;
+  return new Proxy(COLORS, {
+    get: () => INK,
+  });
 }
 
-/**
- * Draw the Donut silhouette paths. Compact round cat, big single eye.
- */
-function drawDonutPaths(g, opts) {
-  const c = opts.colors;
-  const fur = c.donutFur;
-  const furShadow = c.donutFurShadow;
-  const furHighlight = c.donutFurHighlight;
-  const sclera = c.donutSclera;
-  const iris = c.donutIris;
-  const pupil = c.donutPupil;
-  const cheek = c.donutCheek;
-  const ink = c.ink;
-  const outlineOnly = !!opts.outlineOnly;
+function poly(g, points, fill) {
+  const v = points.map(([x, y]) => new Phaser.Math.Vector2(x, y));
+  g.fillStyle(fill, 1);
+  g.fillPoints(v, true);
+}
 
-  const fill = (color, alpha = 1) => g.fillStyle(color, alpha);
+function inkPoly(g, points, thickness = 2) {
+  const v = points.map(([x, y]) => new Phaser.Math.Vector2(x, y));
+  g.lineStyle(thickness, INK, 1);
+  g.strokePoints(v, true);
+}
 
-  // ----- EARS (two triangles on top) -----
-  fill(outlineOnly ? ink : furShadow);
-  g.beginPath();
-  g.moveTo(10, 14);
-  g.lineTo(14, 2);
-  g.lineTo(20, 12);
-  g.closePath();
-  g.fillPath();
-
-  g.beginPath();
-  g.moveTo(38, 14);
-  g.lineTo(34, 2);
-  g.lineTo(28, 12);
-  g.closePath();
-  g.fillPath();
-
-  // Inner ear (pink) — color pass only
-  if (!outlineOnly) {
-    fill(0xff9ec4, 1);
-    g.beginPath();
-    g.moveTo(14, 12);
-    g.lineTo(16, 6);
-    g.lineTo(19, 11);
-    g.closePath();
-    g.fillPath();
-
-    g.beginPath();
-    g.moveTo(34, 12);
-    g.lineTo(32, 6);
-    g.lineTo(29, 11);
-    g.closePath();
-    g.fillPath();
-  }
-
-  // ----- BODY (big round) -----
-  fill(outlineOnly ? ink : fur);
-  g.fillCircle(24, 28, 18);
-
-  // Belly highlight — cel shading step
-  if (!outlineOnly) {
-    fill(furHighlight, 1);
-    g.fillCircle(20, 24, 5);
-  }
-
-  // Bottom shadow — cel shading step
-  if (!outlineOnly) {
-    fill(furShadow, 1);
-    g.fillEllipse(24, 40, 22, 6);
-  }
-
-  // ----- THE BIG MAGIC EYE (Donut's defining feature) -----
-  // Sclera (white)
-  fill(outlineOnly ? ink : sclera);
-  g.fillCircle(24, 24, 8);
-
-  // Iris — glowing cyan
-  if (!outlineOnly) {
-    fill(iris, 1);
-    g.fillCircle(24, 24, 5);
-
-    // Pupil
-    fill(pupil, 1);
-    g.fillCircle(24, 24, 2);
-
-    // Eye glint (specular highlight)
-    fill(0xffffff, 1);
-    g.fillCircle(22, 22, 1);
-  }
-
-  // ----- CHEEKS (blush) -----
-  if (!outlineOnly) {
-    fill(cheek, 0.7);
-    g.fillCircle(14, 30, 2);
-    g.fillCircle(34, 30, 2);
-  }
-
-  // ----- PAW NUBS (small, peeking from body) -----
-  fill(outlineOnly ? ink : furShadow);
-  g.fillCircle(12, 42, 4);
-  g.fillCircle(36, 42, 4);
+function inkLine(g, x1, y1, x2, y2, thickness = 2) {
+  g.lineStyle(thickness, INK, 1);
+  g.lineBetween(x1, y1, x2, y2);
 }
 
 /* ------------------------------------------------------------------ */
-/* Public API                                                           */
+/* CARL — 96x128, facing right, feet at y=128. @johnrubio-inspired:    */
+/* bearded jaw, heavy muscle, gauntlet arm thrown BACK (screen-left),  */
+/* bare arm forward, flowing cape, heart boxers, spiked knees.         */
+/* Poses: idle (stance) / run1 / run2 (stride + pump + cape wave).     */
+/* ------------------------------------------------------------------ */
+
+function drawCarlLimb(g, C, x1, y1, x2, y2, w, detail) {
+  // Thick limb segment with rounded joints (upper arm / forearm / thigh).
+  // Outlined on BOTH edges so limbs separate from the torso mass.
+  g.fillStyle(C.skin, 1);
+  g.lineStyle(w, C.skin, 1);
+  g.beginPath();
+  g.moveTo(x1, y1);
+  g.lineTo(x2, y2);
+  g.strokePath();
+  g.fillStyle(C.skin, 1);
+  g.fillCircle(x1, y1, w / 2);
+  g.fillCircle(x2, y2, w / 2);
+  // ink both flanks (perpendicular offsets)
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.max(1, Math.hypot(dx, dy));
+  const nx = (-dy / len) * (w / 2 - 1);
+  const ny = (dx / len) * (w / 2 - 1);
+  g.lineStyle(2, INK, 1);
+  g.beginPath();
+  g.moveTo(x1 + nx, y1 + ny);
+  g.lineTo(x2 + nx, y2 + ny);
+  g.strokePath();
+  g.beginPath();
+  g.moveTo(x1 - nx, y1 - ny);
+  g.lineTo(x2 - nx, y2 - ny);
+  g.strokePath();
+  if (!detail) return;
+  g.fillStyle(C.skinShadow, 1);
+  g.lineStyle(2, C.skinShadow, 1);
+  g.beginPath();
+  g.moveTo(x1 - 2, y1);
+  g.lineTo(x2 - 2, y2);
+  g.strokePath();
+  g.fillStyle(C.skinHi, 1);
+  g.fillCircle((x1 + x2) / 2 - 2, (y1 + y2) / 2 - 2, 2);
+}
+
+function drawCarlFist(g, C, x, y, r, gauntlet) {
+  if (gauntlet) {
+    // Brass spiked fist + red wrist wrap (rear arm).
+    g.fillStyle(C.wrap, 1);
+    g.fillCircle(x, y, r + 1);
+    g.fillStyle(C.brass, 1);
+    g.fillCircle(x, y, r);
+    if (!gauntlet.quiet) {
+      g.fillStyle(C.brassHi, 1);
+      g.fillCircle(x - 2, y - 2, r * 0.45);
+      // spikes ring the outer edge
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI * 2 * i) / 6 + 0.4;
+        const sx = x + Math.cos(a) * r;
+        const sy = y + Math.sin(a) * r;
+        g.fillTriangle(sx - 2, sy - 2, sx + 2, sy + 2, x + Math.cos(a) * (r + 6), y + Math.sin(a) * (r + 6));
+      }
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(x, y, r);
+    }
+  } else {
+    // Bare knuckles.
+    g.fillStyle(C.skin, 1);
+    g.fillCircle(x, y, r);
+    if (gauntlet !== 'bare-quiet') {
+      g.fillStyle(C.skinHi, 1);
+      g.fillCircle(x - 1.5, y - 1.5, r * 0.4);
+      inkLine(g, x - r + 1, y + 1, x + r - 1, y + 1, 2);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(x, y, r);
+    }
+  }
+}
+
+function drawCarl(g, outlineOnly, pose) {
+  const C = comicPalette(outlineOnly);
+  const run = pose === 'run1' ? 1 : pose === 'run2' ? -1 : 0;
+
+  // ---- CAPE (behind everything, flows left; waves with stride) ----
+  const capeLift = pose === 'run1' ? -8 : pose === 'run2' ? -3 : 4;
+  const capePts = [
+    [46, 36], [20, 38 + capeLift], [6, 58 + capeLift], [10, 84 + capeLift],
+    [16, 78 + capeLift], [20, 90 + capeLift], [26, 82 + capeLift],
+    [32, 92 + capeLift], [38, 82 + capeLift], [44, 62], [48, 48],
+  ];
+  poly(g, capePts, C.cape);
+  if (!outlineOnly) {
+    poly(g, [[20, 39 + capeLift], [8, 58 + capeLift], [11, 80 + capeLift], [17, 77 + capeLift], [18, 50 + capeLift]], C.capeDark);
+    g.fillStyle(C.hairHi, 1);
+    g.fillRect(40, 37, 5, 14);
+    inkPoly(g, capePts, 3);
+    inkLine(g, 30, 44 + capeLift, 24, 76 + capeLift, 1);
+  }
+
+  // ---- REAR ARM = GAUNTLET (thrown back like the reference lunge) ----
+  // shoulder (46,48) -> elbow -> spiked fist.
+  const gElbow = pose === 'idle' ? [32, 62] : run === 1 ? [24, 56] : [28, 60];
+  const gFist = pose === 'idle' ? [30, 80] : run === 1 ? [8, 50] : [14, 56];
+  drawCarlLimb(g, C, 46, 48, gElbow[0], gElbow[1], 16, !outlineOnly);
+  drawCarlLimb(g, C, gElbow[0], gElbow[1], gFist[0], gFist[1], 13, false);
+  // red wrap at the wrist, then the brass
+  g.fillStyle(C.wrap, 1);
+  g.fillCircle(gFist[0] + 3, gFist[1] - 2, 7);
+  if (!outlineOnly) {
+    g.lineStyle(2, INK, 1);
+    g.strokeCircle(gFist[0] + 3, gFist[1] - 2, 7);
+  }
+  drawCarlFist(g, C, gFist[0], gFist[1], 12, outlineOnly ? { quiet: true } : true);
+
+  // ---- LEGS (stride phases; feet end at y≈126) ----
+  // Each leg: hip -> knee -> foot, then knee pad + bare foot.
+  const legs = pose === 'idle'
+    ? [{ hip: [50, 86], knee: [48, 104], foot: [48, 122] }, { hip: [66, 86], knee: [68, 104], foot: [68, 122] }]
+    : run === 1
+      ? [{ hip: [50, 86], knee: [32, 100], foot: [22, 118] }, { hip: [66, 86], knee: [80, 100], foot: [88, 120] }]
+      : [{ hip: [50, 86], knee: [38, 102], foot: [34, 121] }, { hip: [66, 86], knee: [72, 98], foot: [60, 122] }];
+  for (const leg of legs) {
+    const [hx, hy] = leg.hip;
+    const [kx, ky] = leg.knee;
+    const [fx, fy] = leg.foot;
+    drawCarlLimb(g, C, hx, hy, kx, ky, 17, !outlineOnly);
+    drawCarlLimb(g, C, kx, ky, fx, fy - 4, 13, false);
+    // spiked knee pad (brass, spikes forward) — sized for thick thighs
+    g.fillStyle(C.brass, 1);
+    g.fillRoundedRect(kx - 9, ky - 7, 19, 13, 4);
+    if (!outlineOnly) {
+      g.fillStyle(C.brassDark, 1);
+      g.fillRect(kx - 9, ky + 2, 19, 4);
+      g.fillStyle(C.brassHi, 1);
+      g.fillRect(kx - 7, ky - 6, 5, 3);
+      g.fillStyle(C.brass, 1);
+      g.fillTriangle(kx + 10, ky - 5, kx + 17, ky - 1, kx + 10, ky + 3);
+      g.fillTriangle(kx + 10, ky + 1, kx + 17, ky + 5, kx + 10, ky + 9);
+      g.lineStyle(2, INK, 1);
+      g.strokeRoundedRect(kx - 9, ky - 7, 19, 13, 4);
+    }
+    // bare foot: heel-to-toe ellipse + toe line, facing right
+    g.fillStyle(C.skin, 1);
+    g.fillEllipse(fx + 3, fy, 17, 8);
+    if (!outlineOnly) {
+      g.fillStyle(C.skinShadow, 1);
+      g.fillEllipse(fx + 3, fy + 2, 15, 4);
+      inkLine(g, fx + 7, fy - 1, fx + 11, fy - 1, 1);
+      inkLine(g, fx + 7, fy + 2, fx + 11, fy + 2, 1);
+      g.lineStyle(2, INK, 1);
+      g.strokeEllipse(fx + 3, fy, 17, 8);
+    }
+  }
+
+  // ---- BOXERS (white, red hearts, wider cut) ----
+  g.fillStyle(C.boxer, 1);
+  g.fillRoundedRect(40, 68, 38, 20, 4);
+  if (!outlineOnly) {
+    g.fillStyle(C.boxerShadow, 1);
+    g.fillRect(40, 83, 38, 5);
+    const hearts = [
+      [47, 73], [55, 73], [63, 73], [71, 73],
+      [51, 79], [59, 79], [67, 79],
+    ];
+    g.fillStyle(C.heart, 1);
+    for (const [hx, hy] of hearts) {
+      g.fillCircle(hx - 1.2, hy, 2);
+      g.fillCircle(hx + 1.2, hy, 2);
+      g.fillTriangle(hx - 2.8, hy + 1, hx + 2.8, hy + 1, hx, hy + 4.2);
+    }
+    inkLine(g, 40, 68, 78, 68, 2);
+    inkLine(g, 40, 68, 40, 88, 2);
+    inkLine(g, 78, 68, 78, 88, 2);
+  }
+
+  // ---- TORSO (heavy muscle: lats, pecs, 6-pack) ----
+  g.fillStyle(C.skin, 1);
+  g.fillRoundedRect(36, 38, 42, 34, 9);
+  if (!outlineOnly) {
+    g.fillStyle(C.skinShadow, 1);
+    g.fillRoundedRect(70, 40, 8, 30, 4); // front lat shadow
+    g.fillStyle(C.skinHi, 1);
+    g.fillEllipse(44, 48, 11, 17); // cel light upper-left
+    // pecs
+    inkLine(g, 42, 52, 56, 52, 3);
+    inkLine(g, 60, 51, 73, 53, 3);
+    // abs: 3 rows + center line
+    inkLine(g, 52, 60, 70, 60, 2);
+    inkLine(g, 52, 65, 70, 65, 2);
+    inkLine(g, 54, 70, 68, 70, 2);
+    inkLine(g, 61, 58, 61, 70, 1);
+    g.fillStyle(C.skinShadow, 1);
+    g.fillCircle(61, 74, 1.5); // navel
+    g.lineStyle(3, INK, 1);
+    g.strokeRoundedRect(36, 38, 42, 34, 9);
+  }
+
+  // ---- FRONT ARM (bare, pumps with stride) ----
+  const fSh = [70, 46];
+  const fEl = pose === 'idle' ? [74, 62] : run === 1 ? [84, 54] : [78, 62];
+  const fFi = pose === 'idle' ? [72, 72] : run === 1 ? [88, 62] : [68, 70];
+  drawCarlLimb(g, C, fSh[0], fSh[1], fEl[0], fEl[1], 15, !outlineOnly);
+  drawCarlLimb(g, C, fEl[0], fEl[1], fFi[0], fFi[1], 12, false);
+  drawCarlFist(g, C, fFi[0], fFi[1], 8, outlineOnly ? 'bare-quiet' : false);
+
+  // ---- NECK + TRAPS ----
+  g.fillStyle(C.skinShadow, 1);
+  g.fillRect(54, 30, 12, 10);
+  g.fillStyle(C.skin, 1);
+  poly(g, [[46, 42], [78, 42], [68, 30], [54, 30]], C.skin);
+  if (!outlineOnly) {
+    inkLine(g, 46, 42, 78, 42, 2);
+  }
+
+  // ---- HEAD (face + full BEARD jaw) ----
+  g.fillStyle(C.skin, 1);
+  g.fillRoundedRect(48, 6, 28, 26, 6);
+  if (!outlineOnly) {
+    // beard: full lower-face mass (the @johnrubio jaw)
+    g.fillStyle(C.stubble, 1);
+    g.fillRoundedRect(48, 22, 28, 10, 4);
+    g.fillStyle(C.hairDark, 1);
+    for (let bx = 50; bx <= 72; bx += 4) {
+      g.fillRect(bx, 24, 2, 3);
+      g.fillRect(bx + 1, 28, 2, 2);
+    }
+    // intense eyes under heavy brows
+    g.fillStyle(C.eyeWhite, 1);
+    g.fillRect(54, 13, 7, 5);
+    g.fillRect(65, 13, 7, 5);
+    g.fillStyle(INK, 1);
+    g.fillRect(57, 14, 3, 4);
+    g.fillRect(68, 14, 3, 4);
+    inkLine(g, 52, 10, 61, 13, 3); // brow L, angry
+    inkLine(g, 78, 10, 69, 13, 3); // brow R, angry
+    inkLine(g, 58, 29, 70, 28, 2); // grim mouth under beard edge
+    inkLine(g, 61, 19, 62, 21, 1); // nose nick
+    // ear
+    g.fillStyle(C.skin, 1);
+    g.fillRect(74, 18, 5, 7);
+    inkLine(g, 74, 18, 74, 25, 2);
+    g.lineStyle(3, INK, 1);
+    g.strokeRoundedRect(48, 6, 28, 26, 6);
+  }
+
+  // ---- HAIR (short red crop, spiked fringe, bounce per stride) ----
+  const bounce = pose === 'idle' ? 0 : run === 1 ? -2 : 1;
+  const hairPts = [
+    [46, 14 + bounce], [44, 4 + bounce], [50, 0], [62, 0], [74, 1],
+    [79, 5 + bounce], [76, 12 + bounce], [72, 6], [68, 12 + bounce],
+    [63, 6], [58, 12 + bounce], [53, 6], [49, 13 + bounce],
+  ];
+  poly(g, hairPts, C.hair);
+  if (!outlineOnly) {
+    g.fillStyle(C.hairHi, 1);
+    g.fillEllipse(60, 3, 20, 5);
+    g.fillStyle(C.hairDark, 1);
+    g.fillRect(46, 10 + bounce, 30, 4);
+    inkPoly(g, hairPts, 2);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* DONUT — 64x64 fluffy orange tabby Persian, facing right              */
+/* ------------------------------------------------------------------ */
+
+function drawDonut(g, outlineOnly) {
+  const C = comicPalette(outlineOnly);
+
+  // ---- TAIL (right side) ----
+  g.fillStyle(C.fur, 1);
+  g.fillEllipse(50, 46, 17, 11);
+  if (!outlineOnly) {
+    g.fillStyle(C.furDark, 1);
+    g.fillRect(52, 42, 3, 9);
+    g.fillRect(57, 43, 3, 8);
+    g.fillStyle(C.furLight, 1);
+    g.fillEllipse(46, 43, 6, 4);
+    g.lineStyle(3, INK, 1);
+    g.strokeEllipse(50, 46, 17, 11);
+  }
+
+  // ---- BODY FLOOF tufts (silhouette puff balls) ----
+  const tufts = [
+    [13, 36, 5], [14, 46, 5], [22, 53, 5], [31, 55, 5],
+    [40, 53, 5], [47, 47, 5],
+  ];
+  for (const [tx, ty, tr] of tufts) {
+    g.fillStyle(C.fur, 1);
+    g.fillCircle(tx, ty, tr);
+    if (!outlineOnly) {
+      g.lineStyle(2, INK, 1);
+      g.strokeCircle(tx, ty, tr);
+    }
+  }
+
+  // ---- BODY ----
+  g.fillStyle(C.fur, 1);
+  g.fillCircle(30, 40, 15);
+  if (!outlineOnly) {
+    // cream belly
+    g.fillStyle(C.cream, 1);
+    g.fillEllipse(31, 46, 17, 11);
+    // tabby stripes on flanks
+    g.fillStyle(C.furDark, 1);
+    g.fillRect(17, 36, 4, 3);
+    g.fillRect(17, 41, 4, 3);
+    g.fillRect(40, 50, 4, 3);
+    // cel highlight blob
+    g.fillStyle(C.furLight, 1);
+    g.fillEllipse(24, 33, 9, 6);
+    g.lineStyle(3, INK, 1);
+    g.strokeCircle(30, 40, 15);
+  }
+
+  // ---- PAWS ----
+  g.fillStyle(C.cream, 1);
+  g.fillEllipse(24, 53, 10, 6);
+  g.fillEllipse(37, 53, 10, 6);
+  if (!outlineOnly) {
+    inkLine(g, 22, 53, 26, 53, 1);
+    inkLine(g, 35, 53, 39, 53, 1);
+    g.lineStyle(2, INK, 1);
+    g.strokeEllipse(24, 53, 10, 6);
+    g.strokeEllipse(37, 53, 10, 6);
+  }
+
+  // ---- EARS ----
+  const earL = [[15, 16], [19, 4], [26, 13]];
+  const earR = [[36, 13], [43, 4], [47, 16]];
+  poly(g, earL, C.fur);
+  poly(g, earR, C.fur);
+  if (!outlineOnly) {
+    poly(g, [[18, 13], [20, 7], [23, 12]], C.innerEar);
+    poly(g, [[39, 12], [42, 7], [44, 13]], C.innerEar);
+    inkPoly(g, earL, 2);
+    inkPoly(g, earR, 2);
+  }
+
+  // ---- HEAD ----
+  g.fillStyle(C.fur, 1);
+  g.fillCircle(31, 27, 16);
+  if (!outlineOnly) {
+    // forehead tabby stripes
+    g.fillStyle(C.furDark, 1);
+    g.fillRect(25, 13, 3, 5);
+    g.fillRect(30, 12, 3, 6);
+    g.fillRect(35, 13, 3, 5);
+    // cheek fluff
+    g.fillStyle(C.fur, 1);
+    g.fillCircle(16, 30, 4);
+    g.fillCircle(46, 30, 4);
+    g.lineStyle(2, INK, 1);
+    g.strokeCircle(16, 30, 4);
+    g.strokeCircle(46, 30, 4);
+  }
+
+  // ---- CREAM FACE DISC (Persian flat face) ----
+  g.fillStyle(C.cream, 1);
+  g.fillCircle(31, 30, 11);
+  if (!outlineOnly) {
+    g.fillStyle(C.furLight, 1);
+    g.fillEllipse(27, 26, 8, 5);
+  }
+
+  // ---- EYES (big yellow-green, slit pupils, glint) ----
+  for (const ex of [25, 38]) {
+    g.fillStyle(C.iris, 1);
+    g.fillCircle(ex, 28, 6.5);
+  }
+  if (!outlineOnly) {
+    for (const ex of [25, 38]) {
+      g.fillStyle(C.irisBright, 1);
+      g.fillCircle(ex - 1, 26, 3);
+      // slit pupil
+      g.fillStyle(C.pupil, 1);
+      g.fillEllipse(ex, 28, 2.5, 6);
+      // glint
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(ex - 2.5, 25, 1.6);
+      g.lineStyle(2, INK, 1);
+      g.strokeCircle(ex, 28, 6.5);
+    }
+  }
+
+  // ---- NOSE + MOUTH + WHISKERS ----
+  g.fillStyle(C.nose, 1);
+  g.fillTriangle(28, 34, 34, 34, 31, 37);
+  if (!outlineOnly) {
+    inkLine(g, 31, 37, 31, 39, 1);
+    inkLine(g, 31, 39, 28, 40, 1);
+    inkLine(g, 31, 39, 34, 40, 1);
+    inkLine(g, 14, 32, 22, 34, 1);
+    inkLine(g, 14, 37, 22, 36, 1);
+    inkLine(g, 40, 34, 48, 32, 1);
+    inkLine(g, 40, 36, 48, 37, 1);
+  }
+
+  // ---- HEAD INK RING ----
+  if (!outlineOnly) {
+    g.lineStyle(3, INK, 1);
+    g.strokeCircle(31, 27, 16);
+  }
+
+  // ---- CROWN (gold, 3 spikes, pink gem) ----
+  const crownPts = [
+    [23, 14], [23, 6], [26, 10], [29, 4],
+    [32, 10], [35, 6], [35, 14],
+  ];
+  poly(g, crownPts, C.crown);
+  if (!outlineOnly) {
+    g.fillStyle(C.crownHi, 1);
+    g.fillRect(24, 11, 10, 2);
+    g.fillStyle(C.crownDark, 1);
+    g.fillRect(23, 12, 12, 2);
+    // ball tips
+    g.fillStyle(C.crownHi, 1);
+    g.fillCircle(23, 6, 1.8);
+    g.fillCircle(29, 4, 1.8);
+    g.fillCircle(35, 6, 1.8);
+    // gem
+    g.fillStyle(C.gem, 1);
+    g.fillCircle(29, 11, 2);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(28.4, 10.4, 0.8);
+    inkPoly(g, crownPts, 2);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* SpriteFactory                                                        */
 /* ------------------------------------------------------------------ */
 
 export class SpriteFactory {
-  /**
-   * Must be called once per scene before createCarl/createDonut.
-   * Generates the four textures and stores them in the scene's texture manager.
-   * Idempotent — won't regenerate if textures already exist.
-   */
   static generate(scene) {
+    if (!scene || !scene.textures) return;
     const tm = scene.textures;
 
-    // ----- CARL -----
-    if (!tm.exists(TEXTURE_KEYS.carlOutline)) {
-      const g = scene.add.graphics({ x: 0, y: 0 });
-      g.setVisible(false); // hide but keep in scene tree so generateTexture flushes commands
-      drawCarlPaths(g, { colors: COLORS, outlineOnly: true });
-      g.generateTexture(TEXTURE_KEYS.carlOutline, 48, 64);
-      g.destroy();
+    for (const pose of CARL_POSES) {
+      if (!tm.exists(TEXTURE_KEYS.carlOutline[pose])) {
+        const g = scene.make.graphics({ x: 0, y: 0, add: false });
+        drawCarl(g, true, pose);
+        g.generateTexture(TEXTURE_KEYS.carlOutline[pose], CARL_W, CARL_H);
+        g.destroy();
+      }
+      if (!tm.exists(TEXTURE_KEYS.carlColor[pose])) {
+        const g = scene.make.graphics({ x: 0, y: 0, add: false });
+        drawCarl(g, false, pose);
+        g.generateTexture(TEXTURE_KEYS.carlColor[pose], CARL_W, CARL_H);
+        g.destroy();
+      }
     }
 
-    if (!tm.exists(TEXTURE_KEYS.carlColor)) {
-      const g = scene.add.graphics({ x: 0, y: 0 });
-      g.setVisible(false);
-      drawCarlPaths(g, { colors: COLORS, outlineOnly: false });
-      g.generateTexture(TEXTURE_KEYS.carlColor, 48, 64);
-      g.destroy();
-    }
-
-    // ----- DONUT -----
     if (!tm.exists(TEXTURE_KEYS.donutOutline)) {
-      const g = scene.add.graphics({ x: 0, y: 0 });
-      g.setVisible(false);
-      drawDonutPaths(g, { colors: COLORS, outlineOnly: true });
-      g.generateTexture(TEXTURE_KEYS.donutOutline, 48, 48);
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      drawDonut(g, true);
+      g.generateTexture(TEXTURE_KEYS.donutOutline, DONUT_W, DONUT_H);
       g.destroy();
     }
-
     if (!tm.exists(TEXTURE_KEYS.donutColor)) {
-      const g = scene.add.graphics({ x: 0, y: 0 });
-      g.setVisible(false);
-      drawDonutPaths(g, { colors: COLORS, outlineOnly: false });
-      g.generateTexture(TEXTURE_KEYS.donutColor, 48, 48);
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      drawDonut(g, false);
+      g.generateTexture(TEXTURE_KEYS.donutColor, DONUT_W, DONUT_H);
       g.destroy();
     }
   }
 
-  /**
-   * Build a Carl entity container at (x, y).
-   * The returned container's top-left represents Carl's feet anchor; the
-   * origin is set to (0.5, 1.0) so x,y is "where his boots hit the floor".
-   *
-   * Returned container exposes:
-   *   .colorSprite, .outlineSprite  — the two sprite layers
-   *   .playWalk(), .playIdle()     — animation triggers
-   *   .facing = 1 | -1             — last horizontal facing
-   */
   static createCarl(scene, x, y) {
     SpriteFactory.generate(scene);
 
-    const outline = scene.add.sprite(0, 0, TEXTURE_KEYS.carlOutline);
-    const color = scene.add.sprite(0, 0, TEXTURE_KEYS.carlColor);
+    // 96x128 canvas ≈ old 96x120 on screen at SCALE 1.0 — triple the pixels.
+    const outline = scene.add.sprite(0, 0, TEXTURE_KEYS.carlOutline.idle);
+    const color = scene.add.sprite(0, 0, TEXTURE_KEYS.carlColor.idle);
 
-    // Carl is rendered at 2× scale so he's actually visible at game resolution.
-    // Outline is 1.08× the color sprite, scaled with it.
-    const SCALE = 2.0;
+    const SCALE = 1.0;
     outline.setScale(SCALE * 1.08);
     color.setScale(SCALE * 1.0);
     outline.setOrigin(0.5, 1.0);
     color.setOrigin(0.5, 1.0);
 
     const container = scene.add.container(x, y, [outline, color]);
-    container.setSize(48 * SCALE, 64 * SCALE);
+    container.setSize(CARL_W * SCALE, CARL_H * SCALE);
     container._originX = 0.5;
     container._originY = 1.0;
     container._scale = SCALE;
@@ -416,11 +600,8 @@ export class SpriteFactory {
     container.colorSprite = color;
     container.facing = 1;
     container._baseY = y;
+    container._runFrame = 0;
 
-    // ---- Idle "breathing": outline-only scale pulse. The color sprite
-    // stays at fixed SCALE so the outline (1.08× larger) reads as a
-    // crisp rim around the body. Without this, animating both makes
-    // them grow together and the rim disappears. ----
     const outlineBaseX = outline.scaleX;
     const outlineBaseY = outline.scaleY;
     container._idleTween = scene.tweens.add({
@@ -434,27 +615,33 @@ export class SpriteFactory {
       paused: false,
     });
 
+    container._setPose = function (pose) {
+      outline.setTexture(TEXTURE_KEYS.carlOutline[pose]);
+      color.setTexture(TEXTURE_KEYS.carlColor[pose]);
+    };
+
     container.playWalk = function () {
-      // Walk: faster, more pronounced outline pulse (simulates bob).
-      if (container._walkTween) return;
+      if (container._runTimer) return;
       container._idleTween.pause();
       outline.setScale(outlineBaseX, outlineBaseY);
       color.setScale(SCALE, SCALE);
-      container._walkTween = scene.tweens.add({
-        targets: [outline],
-        scaleX: { from: outlineBaseX, to: outlineBaseX * 1.06 },
-        scaleY: { from: outlineBaseY, to: outlineBaseY * 1.03 },
-        duration: 130,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
+      // Real stride cycle: alternate the two run frames.
+      container._runFrame = 0;
+      container._runTimer = scene.time.addEvent({
+        delay: 130,
+        loop: true,
+        callback: () => {
+          container._runFrame = 1 - container._runFrame;
+          container._setPose(container._runFrame === 0 ? 'run1' : 'run2');
+        },
       });
     };
 
     container.playIdle = function () {
-      if (container._walkTween) {
-        container._walkTween.stop();
-        container._walkTween = null;
+      if (container._runTimer) {
+        container._runTimer.remove(false);
+        container._runTimer = null;
+        container._setPose('idle');
         outline.setScale(outlineBaseX, outlineBaseY);
         color.setScale(SCALE, SCALE);
       }
@@ -469,7 +656,7 @@ export class SpriteFactory {
 
     container.destroy = (function (origDestroy) {
       return function () {
-        if (container._walkTween) container._walkTween.stop();
+        if (container._runTimer) container._runTimer.remove(false);
         if (container._idleTween) container._idleTween.stop();
         origDestroy.call(container);
       };
@@ -478,23 +665,15 @@ export class SpriteFactory {
     return container;
   }
 
-  /**
-   * Build a Donut entity container at (x, y).
-   * Origin (0.5, 0.5) — Donut floats, so the center is the natural anchor.
-   *
-   * Returned container exposes:
-   *   .colorSprite, .outlineSprite
-   *   .irisSprite                  — the glowing cyan iris (for pulse tween)
-   *   .playWalk(), .playIdle()
-   *   .facing = 1 | -1
-   */
   static createDonut(scene, x, y) {
     SpriteFactory.generate(scene);
 
     const outline = scene.add.sprite(0, 0, TEXTURE_KEYS.donutOutline);
     const color = scene.add.sprite(0, 0, TEXTURE_KEYS.donutColor);
 
-    const SCALE = 2.0;
+    // Donut runs SMALLER than Carl (cat vs man, 80px vs 96-120px) so the
+    // pair reads as two characters instead of one fused cat-man blob.
+    const SCALE = 1.25;
     const donutOutlineX = SCALE * 1.10;
     const donutOutlineY = SCALE * 1.10;
     outline.setScale(donutOutlineX, donutOutlineY);
@@ -503,7 +682,7 @@ export class SpriteFactory {
     color.setOrigin(0.5, 0.5);
 
     const container = scene.add.container(x, y, [outline, color]);
-    container.setSize(48 * SCALE, 48 * SCALE);
+    container.setSize(64 * SCALE, 64 * SCALE);
     container._originX = 0.5;
     container._originY = 0.5;
     container._scale = SCALE;
@@ -512,22 +691,17 @@ export class SpriteFactory {
     container.colorSprite = color;
     container.facing = 1;
     container._baseY = y;
-    container._floatOffsetY = 0; // updated by tween each frame; consumers add this to their target Y.
+    container._floatOffsetY = 0;
 
-    // ---- Magic eye iris pulse: subtle cyan glow throbs every 1.2s ----
-    // We retint the entire color sprite briefly to simulate the glow catching.
     container._eyeTween = scene.tweens.add({
       targets: color,
-      tint: { from: 0xffffff, to: 0xc8ffff },
+      tint: { from: 0xffffff, to: 0xffe080 },
       duration: 1200,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
 
-    // ---- Float bob: write a small offset into _floatOffsetY each frame.
-    // Consumers (e.g. GameScene's orbit math) read it and add to their
-    // computed y. This avoids the tween fighting external position writes.
     container._floatTween = scene.tweens.addCounter({
       from: -2,
       to: 0,
@@ -541,7 +715,6 @@ export class SpriteFactory {
     });
 
     container.playWalk = function () {
-      // Donut's "walk" is an excited flutter: faster outline jitter.
       if (container._flutterTween) return;
       outline.setScale(donutOutlineX, donutOutlineY);
       color.setScale(SCALE, SCALE);

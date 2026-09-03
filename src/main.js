@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
+import { MenuScene } from './scenes/MenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { UIScene } from './scenes/UIScene.js';
 
@@ -8,7 +9,7 @@ const config = {
   parent: 'game',
   width: 1280,
   height: 720,
-  pixelArt: true,
+  pixelArt: false,
   backgroundColor: '#0a0a0a',
   physics: {
     default: 'arcade',
@@ -17,7 +18,7 @@ const config = {
       debug: false,
     },
   },
-  scene: [BootScene, GameScene, UIScene],
+  scene: [BootScene, MenuScene, GameScene, UIScene],
 };
 
 const game = new Phaser.Game(config);
