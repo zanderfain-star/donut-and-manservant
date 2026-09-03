@@ -167,6 +167,9 @@ export class UIScene extends Phaser.Scene {
       this.overlay = null;
       this._pendingZone = null;
       this._navigating = false;
+      this._winFloor = undefined;
+      this._winHasNext = false;
+      this._descendArmed = false;
     });
 
     // Apply any zone event that arrived before create() built the texts,

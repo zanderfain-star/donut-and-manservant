@@ -375,6 +375,15 @@ export class GameScene extends Phaser.Scene {
     this.combo = 0;
     this.comboTimer = 0;
     this.zoneName = this.zones[0].name;
+    // Run flags: scene instances are REUSED across stop/start, so every
+    // transient flag must reset here. (Missed `descending` once locked all
+    // input forever on every floor after a stair transition.)
+    this.descending = false;
+    this.stomping = false;
+    this._stompWasAir = false;
+    this._stompBoot = null;
+    this.donutOrbitT = 0;
+    this.lastBlockToastAt = -10000;
     this.won = false;
     this.dead = false;
     this.lastHurtAt = -10000;
