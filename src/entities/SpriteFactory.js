@@ -324,50 +324,50 @@ function drawCarl(g, outlineOnly, pose) {
     inkLine(g, 46, 42, 78, 42, 2);
   }
 
-  // ---- HEAD (face + full BEARD jaw) ----
+  // ---- HEAD (face + full BEARD jaw, centered over torso: x43-71) ----
   g.fillStyle(C.skin, 1);
-  g.fillRoundedRect(48, 6, 28, 26, 6);
+  g.fillRoundedRect(43, 6, 28, 26, 6);
   if (!outlineOnly) {
     // beard: full lower-face mass (the @johnrubio jaw)
     g.fillStyle(C.stubble, 1);
-    g.fillRoundedRect(48, 22, 28, 10, 4);
+    g.fillRoundedRect(43, 22, 28, 10, 4);
     g.fillStyle(C.hairDark, 1);
-    for (let bx = 50; bx <= 72; bx += 4) {
+    for (let bx = 45; bx <= 67; bx += 4) {
       g.fillRect(bx, 24, 2, 3);
       g.fillRect(bx + 1, 28, 2, 2);
     }
     // intense eyes under heavy brows
     g.fillStyle(C.eyeWhite, 1);
-    g.fillRect(54, 13, 7, 5);
-    g.fillRect(65, 13, 7, 5);
+    g.fillRect(49, 13, 7, 5);
+    g.fillRect(60, 13, 7, 5);
     g.fillStyle(INK, 1);
-    g.fillRect(57, 14, 3, 4);
-    g.fillRect(68, 14, 3, 4);
-    inkLine(g, 52, 10, 61, 13, 3); // brow L, angry
-    inkLine(g, 78, 10, 69, 13, 3); // brow R, angry
-    inkLine(g, 58, 29, 70, 28, 2); // grim mouth under beard edge
-    inkLine(g, 61, 19, 62, 21, 1); // nose nick
+    g.fillRect(52, 14, 3, 4);
+    g.fillRect(63, 14, 3, 4);
+    inkLine(g, 47, 10, 56, 13, 3); // brow L, angry
+    inkLine(g, 73, 10, 64, 13, 3); // brow R, angry
+    inkLine(g, 53, 29, 65, 28, 2); // grim mouth under beard edge
+    inkLine(g, 56, 19, 57, 21, 1); // nose nick
     // ear
     g.fillStyle(C.skin, 1);
-    g.fillRect(74, 18, 5, 7);
-    inkLine(g, 74, 18, 74, 25, 2);
+    g.fillRect(69, 18, 5, 7);
+    inkLine(g, 69, 18, 69, 25, 2);
     g.lineStyle(3, INK, 1);
-    g.strokeRoundedRect(48, 6, 28, 26, 6);
+    g.strokeRoundedRect(43, 6, 28, 26, 6);
   }
 
   // ---- HAIR (short red crop, spiked fringe, bounce per stride) ----
   const bounce = pose === 'idle' ? 0 : run === 1 ? -2 : 1;
   const hairPts = [
-    [46, 14 + bounce], [44, 4 + bounce], [50, 0], [62, 0], [74, 1],
-    [79, 5 + bounce], [76, 12 + bounce], [72, 6], [68, 12 + bounce],
-    [63, 6], [58, 12 + bounce], [53, 6], [49, 13 + bounce],
+    [41, 14 + bounce], [39, 4 + bounce], [45, 0], [57, 0], [69, 1],
+    [74, 5 + bounce], [71, 12 + bounce], [67, 6], [63, 12 + bounce],
+    [58, 6], [53, 12 + bounce], [48, 6], [44, 13 + bounce],
   ];
   poly(g, hairPts, C.hair);
   if (!outlineOnly) {
     g.fillStyle(C.hairHi, 1);
-    g.fillEllipse(60, 3, 20, 5);
+    g.fillEllipse(55, 3, 20, 5);
     g.fillStyle(C.hairDark, 1);
-    g.fillRect(46, 10 + bounce, 30, 4);
+    g.fillRect(41, 10 + bounce, 30, 4);
     inkPoly(g, hairPts, 2);
   }
 }
