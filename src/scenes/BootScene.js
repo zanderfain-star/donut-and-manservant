@@ -585,6 +585,22 @@ export class BootScene extends Phaser.Scene {
         g.fillRect(sx, sy, 2, 2);
         g.fillStyle(0xff2040, 1);
       }
+      // lapels + cummerbund: the Baron dresses for the kill
+      g.fillStyle(0x2a2a36, 1);
+      g.fillTriangle(48, 48, 40, 70, 52, 70);
+      g.fillTriangle(72, 48, 80, 70, 68, 70);
+      g.fillStyle(0x7a1020, 1);
+      g.fillRect(28, 80, 64, 8);
+      g.fillStyle(0xff2040, 0.6);
+      g.fillRect(28, 80, 64, 2);
+      // cuff buttons
+      g.fillStyle(PAL.brassHi, 1);
+      g.fillCircle(17, 55, 1.8);
+      g.fillCircle(103, 55, 1.8);
+      // hoof shine
+      g.fillStyle(0xffffff, 0.5);
+      g.fillRect(38, 105, 6, 2);
+      g.fillRect(68, 105, 6, 2);
       g.lineStyle(4, INK, 1);
       g.strokeRoundedRect(26, 44, 68, 46, 10);
       // boar head
@@ -673,6 +689,12 @@ export class BootScene extends Phaser.Scene {
       g.fillRoundedRect(30, 46, 60, 52, 16);
       g.fillStyle(tan, 1);
       g.fillEllipse(60, 74, 36, 26);
+      g.fillStyle(0xc09a6a, 1);
+      g.fillEllipse(60, 82, 26, 12); // belly shading
+      // pec lines: he lifts
+      g.lineStyle(2, 0x6a4a2a, 1);
+      g.beginPath(); g.arc(50, 58, 8, Math.PI * 1.1, Math.PI * 1.9, false); g.strokePath();
+      g.beginPath(); g.arc(70, 58, 8, Math.PI * 1.1, Math.PI * 1.9, false); g.strokePath();
       // flank fluff tufts
       g.fillStyle(fur, 1);
       for (const [fx, fy] of [[28, 56], [92, 56], [28, 76], [92, 76]]) {
@@ -736,6 +758,18 @@ export class BootScene extends Phaser.Scene {
       g.strokeRect(53, 37, 7, 12);
       g.strokeRect(62, 37, 7, 12);
       g.lineBetween(53, 43, 69, 43);
+      // tooth shine + foot claws + tail tuft
+      g.fillStyle(0xffffff, 0.9);
+      g.fillRect(54, 38, 2, 10);
+      g.fillRect(63, 38, 2, 10);
+      g.fillStyle(INK, 1);
+      for (const [tx, ty] of [[38, 107], [46, 107], [72, 107], [80, 107]]) {
+        g.fillTriangle(tx - 2, ty, tx + 2, ty, tx, ty + 5);
+      }
+      g.fillStyle(fur, 1);
+      g.fillCircle(8, 68, 6);
+      g.lineStyle(2, INK, 1);
+      g.strokeCircle(8, 68, 6);
       g.lineStyle(4, INK, 1);
       g.strokeCircle(60, 28, 19);
     });
@@ -1639,6 +1673,9 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(0, 26, 128, 4);
       g.fillStyle(0xffffff, 0.5);
       g.fillRect(0, 8, 128, 2);
+      // panel seams (tile-safe: 32px grid divides 128)
+      g.lineStyle(1, PAL.slabDark, 1);
+      for (const sx of [32, 64, 96]) g.lineBetween(sx, 8, sx, 30);
       // top cracks
       g.lineStyle(1, PAL.slabDark, 1);
       g.lineBetween(18, 0, 30, 8);

@@ -864,8 +864,9 @@ export class GameScene extends Phaser.Scene {
       step.setData('topY', y);
       this.platformGroup.add(step);
       this.platformTops.push({ x1: x, x2: x + w, top: y });
-      const plat = this.add.image(x + w / 2, y + 20, 'platform')
-        .setDisplaySize(w, 40)
+      // TILED (not stretched): rivets + hazard caps repeat cleanly at any
+      // width instead of smearing.
+      const plat = this.add.tileSprite(x + w / 2, y + 20, w, 40, 'platform')
         .setDepth(3);
       if (FLOORS[this.floor].platformTint) plat.setTint(FLOORS[this.floor].platformTint);
     }
@@ -1654,6 +1655,7 @@ export class GameScene extends Phaser.Scene {
       // wander off the edge and end up below Carl.
       e.patrolRange = s.py !== undefined ? Math.min(s.range, 40) : s.range;
       e.patrolDir = Math.random() < 0.5 ? -1 : 1;
+      e.hopT = Math.random() * 1.5; // hop cooldown: patrollers bounce, not pogo
       e.spitTimer = (e.spitCdBase || 1500 + Math.random() * 1500) * 0.7;
       const isBoss = s.type === this.bossType;
       const haloColor = isBoss ? 0xff8aa0 : s.type === 'trog' ? 0xff2e4d : s.type === 'tinker' ? 0xa04dff : s.type === 'rat' ? 0xffb000 : 0x3ddc5f;
@@ -1677,6 +1679,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies.getChildren().forEach((e) => {
       if (!e.alive) return;
       const dx = px - e.x;
+      e.hopT = Math.max(0, (e.hopT || 0) - dt); // hop cooldown ticks always
 
       if (e.etype === 'tinker') {
         // Keeps its distance: backs away when Carl closes in past ~260px.
@@ -1688,8 +1691,9 @@ export class GameScene extends Phaser.Scene {
           this.patrolMove(e);
         }
         // Hop out when walled in so lobbers never wedge under a slab.
-        if (e.body.blocked.down && (e.body.blocked.left || e.body.blocked.right)) {
+        if (e.body.blocked.down && (e.body.blocked.left || e.body.blocked.right) && e.hopT <= 0) {
           e.body.setVelocityY(-500);
+          e.hopT = 1.4;
         }
         // Lob a spit on a timer when Carl is in range.
         e.spitTimer -= dt * 1000;
@@ -1699,32 +1703,47 @@ export class GameScene extends Phaser.Scene {
         }
       } else if (e.etype === this.bossType) {
         // Character boss: stalks Carl on foot, penned to the flat stair
-        // arena (5400–6010) so it can't leave its lair. Lunges when close.
+        // arena (5400–6010) so it can't leave its lair. Lunges are
+        // TELEGRAPHED (crouch + glint, 450ms) and infrequent — no spasms.
         let dir = Math.sign(dx) || 1;
         if (e.x < 5420) dir = 1;
         else if (e.x > 6000) dir = -1;
         e.angle = 0; // upright — no more rolling
         e.lungeT = (e.lungeT || 0) - dt * 1000;
-        if (e.body.blocked.down && e.lungeT <= 0 && Math.abs(dx) < 340 && Math.abs(dx) > 40 && !this.dead && !this.won) {
-          e.body.setVelocityY(-520);
-          e.body.setVelocityX(dir * (e.speed + 170));
-          e.lungeT = 1800 + Math.random() * 900;
+        if ((e.lungeWindup || 0) > 0) {
+          // Telegraph: planted, crouched, glinting. Then LEAP.
+          e.lungeWindup -= dt * 1000;
+          e.body.setVelocityX(0);
+          if (e.lungeWindup <= 0) {
+            e.clearTint();
+            e.setScale(e._bossScale || 1);
+            e.body.setVelocityY(-520);
+            e.body.setVelocityX(dir * (e.speed + 170));
+          }
+        } else if (e.body.blocked.down && e.lungeT <= 0 && Math.abs(dx) < 340 && Math.abs(dx) > 40 && !this.dead && !this.won) {
+          e.lungeWindup = 450;
+          e.lungeT = 2800 + Math.random() * 1200;
+          e._bossScale = e._bossScale || e.scaleX || 1;
+          e.setTint(0xffd080);
+          e.setScale(e._bossScale * 1.12, e._bossScale * 0.82); // crouch
         } else {
           e.body.setVelocityX(dir * e.speed);
         }
         e.setFlipX(dir < 0);
       } else {
-        // Ground pattern: chase-hop when Carl is above and near (climbs
-        // platforms after him), wall-hop when penned, turnaround hops
-        // from patrolMove keep the bounce beat.
+        // Ground pattern: rare chase-hop when Carl is clearly above and
+        // near (climbs platforms after him), wall-hop when penned,
+        // occasional turnaround hops from patrolMove. Cooldown-gated.
         const grounded = e.body.blocked.down;
-        if (grounded && Math.abs(dx) < 230 && py < e.y - 70 && !this.dead && !this.won) {
-          e.body.setVelocityY(-560);
+        if (grounded && e.hopT <= 0 && Math.abs(dx) < 200 && py < e.y - 100 && !this.dead && !this.won) {
+          e.body.setVelocityY(-520);
           e.body.setVelocityX(Math.sign(dx || 1) * e.speed * 1.25);
+          e.hopT = 1.6;
         } else {
           this.patrolMove(e);
-          if (grounded && (e.body.blocked.left || e.body.blocked.right)) {
+          if (grounded && e.hopT <= 0 && (e.body.blocked.left || e.body.blocked.right)) {
             e.body.setVelocityY(-540);
+            e.hopT = 1.4;
           }
         }
       }
@@ -1770,9 +1789,11 @@ export class GameScene extends Phaser.Scene {
     if (e.patrolDir === 1 && e.x >= target) { e.patrolDir = -1; turned = true; }
     else if (e.patrolDir === -1 && e.x <= target) { e.patrolDir = 1; turned = true; }
     e.body.setVelocityX(e.patrolDir * e.speed);
-    // Hop at each turnaround: patrollers bounce a visible beat instead of
-    // sliding back and forth.
-    if (turned && e.body.blocked.down) e.body.setVelocityY(-460);
+    // Hop at SOME turnarounds (cooldown-gated): a bounce beat, not a pogo.
+    if (turned && e.body.blocked.down && (e.hopT || 0) <= 0) {
+      e.body.setVelocityY(-380);
+      e.hopT = 1.2 + Math.random();
+    }
   }
 
   enemySpit(e, dx) {
