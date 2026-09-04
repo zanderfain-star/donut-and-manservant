@@ -53,7 +53,7 @@ export class UIScene extends Phaser.Scene {
     })).setDepth(500);
 
     // Mana crystals (real row when GameScene exposes mana; else cooldown pips)
-    this.manaText = ink(this.add.text(24, 50, 'MAGIC: ', {
+    this.manaText = ink(this.add.text(24, 50, 'ROCKET: ', {
       fontFamily: '"Courier New", monospace',
       fontSize: '16px',
       fontStyle: 'bold',
@@ -63,7 +63,7 @@ export class UIScene extends Phaser.Scene {
     })).setDepth(500);
 
     // Magic cooldown readout
-    this.magicCdText = ink(this.add.text(24, 72, 'MAGIC: [READY]', {
+    this.magicCdText = ink(this.add.text(24, 72, 'ROCKET: [READY]', {
       fontFamily: '"Courier New", monospace',
       fontSize: '13px',
       fontStyle: 'bold',
@@ -135,7 +135,7 @@ export class UIScene extends Phaser.Scene {
     this.footerBg.lineStyle(1, 0xf4ecd8, 0.35);
     this.footerBg.strokeRect(180, 688, 920, 24);
     this.controlsText = ink(this.add.text(640, 700,
-      '[A/D] move  [W/SPACE] jump  [J] punch  [K] stomp  [L] magic  [R] retry  [M] menu', {
+      '[A/D] move  [W/SPACE] jump  [J] punch  [K] stomp  [L] rocket  [R] retry  [M] menu', {
       fontFamily: '"Courier New", monospace',
       fontSize: '13px',
       fontStyle: 'bold',
@@ -303,7 +303,7 @@ export class UIScene extends Phaser.Scene {
       const maxM = Math.max(1, Math.min(20, Math.floor(g.maxMana)));
       const mana = Math.max(0, Math.min(maxM, Math.floor(g.mana)));
       const emptyM = Math.max(0, maxM - mana); // NEVER negative
-      this.manaText.setText(`MAGIC: ${'◆'.repeat(mana)}${'◇'.repeat(emptyM)}`);
+      this.manaText.setText(`ROCKET: ${'◆'.repeat(mana)}${'◇'.repeat(emptyM)}`);
       this.manaText.setColor(mana <= 0 ? '#888888' : '#6effff');
     } else {
       // Fallback while GameScene has no mana pool: pips from lastMagicAt.
@@ -313,10 +313,10 @@ export class UIScene extends Phaser.Scene {
       const remaining = Math.max(0, cdTotal - (now - last));
       if (remaining > 0) {
         const pips = Math.max(1, Math.ceil((remaining / cdTotal) * 4));
-        this.manaText.setText(`MAGIC: ${'◆'.repeat(4 - pips)}${'◇'.repeat(pips)} charging…`);
+        this.manaText.setText(`ROCKET: ${'◆'.repeat(4 - pips)}${'◇'.repeat(pips)} charging…`);
         this.manaText.setColor('#888888');
       } else {
-        this.manaText.setText('MAGIC: ◆◆◆◆ READY (Donut!)');
+        this.manaText.setText('ROCKET: ◆◆◆◆ READY (Donut!)');
         this.manaText.setColor('#6effff');
       }
     }
@@ -331,7 +331,7 @@ export class UIScene extends Phaser.Scene {
         this.magicCdText.setText(`COOLDOWN: ${(Math.ceil(cdRemaining / 100) / 10).toFixed(1)}s`);
         this.magicCdText.setColor('#888888');
       } else {
-        this.magicCdText.setText('MAGIC: [READY] — press [L]!');
+        this.magicCdText.setText('ROCKET: [READY] — press [L]!');
         this.magicCdText.setColor('#6effff');
       }
     }

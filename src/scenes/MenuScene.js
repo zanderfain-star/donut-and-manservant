@@ -212,7 +212,7 @@ export class MenuScene extends Phaser.Scene {
       ['[W] [SPACE]', 'jump'],
       ['[J]', 'punch (short range)'],
       ['[K]', 'stomp (mid-air slam — one-shots!)'],
-      ['[L]', 'magic missile (Donut fires!)'],
+      ['[L]', 'DONUT ROCKET (Donut fires!)'],
       ['[R] / [M]', 'restart floor / menu'],
     ];
     const startY = panelY - 62;
@@ -238,7 +238,7 @@ export class MenuScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: '#ffb000',
     }).setOrigin(0.5).setDepth(46);
-    this.add.text(panelX, panelY + panelH / 2 - 14, 'LOOT: HAM heals • STAR scores • CRYSTAL = mana for Donut rockets', {
+    this.add.text(panelX, panelY + panelH / 2 - 14, 'LOOT: HAM heals • STAR scores • CRYSTAL = fuel for Donut rockets', {
       fontFamily: '"Courier New", monospace',
       fontSize: '11px',
       color: '#6effff',

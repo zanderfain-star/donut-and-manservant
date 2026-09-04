@@ -150,7 +150,7 @@ const FLOORS = {
     tips: [
       [1200, 'A/D move • W/SPACE jump'],
       [4500, 'J punch • K stomp (mid-air!)'],
-      [7800, 'L = Donut eye-rocket (needs CRYSTAL mana)'],
+      [7800, 'L = Donut rocket (needs CRYSTAL fuel)'],
       [11000, 'HAM heals • STAR scores • take the STAIRS DOWN →'],
     ],
     worldW: 6400, endX: 6000,
@@ -1053,7 +1053,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   // Goofy end-of-floor achievements: judged purely on playstyle stats.
-  // Worth nothing. Means everything.
+  // Worth nothing. Means everything. Earned pool is SHUFFLED so the 4
+  // plaques vary run to run, and most quips roll a random variant.
   computeAchievements() {
     const s = this.stats;
     const kills = s.punch + s.stomp + s.magic + s.mongo;
@@ -1067,32 +1068,56 @@ export class GameScene extends Phaser.Scene {
     });
     const runSecs = (this.time.now - s.t0) / 1000;
     const out = [];
-    const A = (id, title, quip) => out.push({ id, title, quip });
+    const A = (id, title, ...quips) => out.push({
+      id, title, quip: quips[Math.floor(Math.random() * quips.length)],
+    });
     // Playstyle (how you fought)
-    if (kills === 0) A('pacifist', 'CERTIFIED LOVER', "0 kills. Carl's fists have filed a complaint.");
-    if (kills > 0 && s.stomp === 0 && s.magic === 0 && s.mongo === 0) A('fists', 'PUNCH DRUNK', 'Every problem is a nail. You are the hammer.');
-    if (kills > 0 && s.punch === 0 && s.stomp === 0 && s.mongo === 0) A('artillery', 'CAT ARTILLERY', 'Donut did 100% of the killing. Carl supervised.');
-    if (kills > 0 && s.punch === 0 && s.magic === 0 && s.mongo === 0) A('stomp', 'SMOOSH SUPREME', 'The floor sends its regards. And a chiropractor bill.');
+    if (kills === 0) A('pacifist', 'CERTIFIED LOVER', "0 kills. Carl's fists have filed a complaint.", 'Hugging it out. The dungeon is confused.', 'Violence declined. Donut respects it. Carl does not.');
+    if (kills > 0 && s.stomp === 0 && s.magic === 0 && s.mongo === 0) A('fists', 'PUNCH DRUNK', 'Every problem is a nail. You are the hammer.', 'Hands rated E for Everyone. The baddies disagree.', 'The Marquis of Queensbury sends his regards.');
+    if (kills > 0 && s.punch === 0 && s.stomp === 0 && s.mongo === 0) A('artillery', 'CAT ARTILLERY', 'Donut did 100% of the killing. Carl supervised.', 'Fire support, feline division.', 'Carl pointed. Donut deleted.');
+    if (kills > 0 && s.punch === 0 && s.magic === 0 && s.mongo === 0) A('stomp', 'SMOOSH SUPREME', 'The floor sends its regards. And a chiropractor bill.', 'Gravity did most of the work. Carl takes the credit.', 'Local floors file noise complaint.');
+    if (s.punch >= 8) A('slugger', 'CERTIFIED SLUGGER', `${s.punch} punches landed. Somebody's been skipping leg day.`, 'Fists of fury, sponsored by spite.');
+    if (s.stomp >= 5) A('seismic', 'SEISMIC EVENT', `${s.stomp} smooshes. Seismographs noticed.`, 'The dungeon downstairs felt that one.');
+    if (s.casts >= 6) A('rocketman', 'ROCKET MAN', 'Donut is filing for overtime.', 'Elton John sends regards.', 'Six-plus rockets. Subtlety left the chat.');
+    if (s.magic >= 4) A('firesupport', 'FIRE SUPPORT', 'Donut provides. Carl supervises.', 'Death from slightly above.');
+    if (s.casts > 0 && s.magic === 0) A('stormtrooper', 'STORMTROOPER', `Fired ${s.casts} rocket${s.casts > 1 ? 's' : ''}. Hit nothing. Donut blames the wind.`, 'Aim is a team effort. The team failed.');
+    if (kills >= 20) A('riot', 'ONE-MAN RIOT', `${kills} kills. The crawlers are taking notes.`, 'Mordecai just clipped that.');
+    else if (kills >= 12) A('crowd', 'CROWD CONTROL', `${kills} kills. The queue has been shortened.`, 'Packed house. Emptier now.');
     // Progression (how far / what you beat)
-    if (s.swine > 0) A('piggy', 'THIS LITTLE PIGGY', 'Went to market. Permanently.');
-    if (s.ralph > 0) A('gerbil', 'POP GOES THE GERBIL', 'Squeak. Squeak. Silence.');
-    if (s.heather > 0) A('bear', 'BEAR NECESSITY AVERTED', 'The rink is closed. Forever.');
-    if (s.amalgam > 0) A('compost', 'COMPOSTED', 'Reduced, reused, recycled.');
-    if (s.mongo > 0) A('souschef', 'SOUS CHEF', `Mongo tenderized ${s.mongo} baddie${s.mongo > 1 ? 's' : ''}. Health code violation.`);
-    if (this.mongoLevel >= 3) A('bigboy', 'BIG BOY', '12 pounds of raptor. All of it hungry.');
-    if (this.visitedZones.size >= 3) A('sightseer', 'SIGHTSEER', 'Saw every zone. Smelled every zone.');
-    if (runSecs < 240) A('speedrunner', 'SPEEDRUNNER', 'Under 4 minutes. Borant is reviewing the tape.');
-    if (s.box >= 2) A('gambler', 'BOX GAMBLER', 'Opened every Silver Box. No notes.');
+    if (s.swine > 0) A('piggy', 'THIS LITTLE PIGGY', 'Went to market. Permanently.', 'The Baron has left the building.');
+    if (s.ralph > 0) A('gerbil', 'POP GOES THE GERBIL', 'Squeak. Squeak. Silence.', 'Ralph has left the chat.');
+    if (s.heather > 0) A('bear', 'BEAR NECESSITY AVERTED', 'The rink is closed. Forever.', 'No skates. No mercy.');
+    if (s.amalgam > 0) A('compost', 'COMPOSTED', 'Reduced, reused, recycled.', 'The mass has been separated at source.');
+    if (s.mongo > 0) A('souschef', 'SOUS CHEF', `Mongo tenderized ${s.mongo} baddie${s.mongo > 1 ? 's' : ''}. Health code violation.`, `Mongo's kill count: ${s.mongo}. Donut is so proud. Nobody else is.`);
+    if (this.mongoLevel >= 6) A('apex', 'APEX PREDATOR', 'Fully grown Mongo. Run.', 'The food chain has been reorganized.');
+    else if (this.mongoLevel >= 3) A('bigboy', 'BIG BOY', '12 pounds of raptor. All of it hungry.', 'He eats corpses now. Character growth.');
+    if (this.visitedZones.size >= 3) A('sightseer', 'SIGHTSEER', 'Saw every zone. Smelled every zone.', 'Took the full tour. Left a review: 1 star.', 'Gift shop was closed. Gift shop is always closed.');
+    if (runSecs < 240) A('speedrunner', 'SPEEDRUNNER', 'Under 4 minutes. Borant is reviewing the tape.', 'Speedrun strats: running. Incredible.', 'Any% (any percent of dignity intact).');
+    if (runSecs > 480) A('tourist', 'TOURIST', 'Over 8 minutes. Took the scenic route.', 'Stopped to read every sign. Every one.');
+    if (s.box >= 2) A('gambler', 'BOX GAMBLER', 'Opened every Silver Box. No notes.', 'Loot goblin behavior. Respect.');
+    if (s.star >= 6) A('starstruck', 'STARSTRUCK', `${s.star} stars pocketed. The Hoarder is jealous.`, 'Shiny. Very shiny.');
+    if (s.crystal >= 4) A('rockhound', 'ROCK HOUND', `${s.crystal} crystals. Rocket fuel secured.`, 'Donut approves of this hoard.');
+    if (s.ham >= 3) A('hamfan', 'HAM ENTHUSIAST', `${s.ham} hams inhaled. No regrets.`, 'Protein-based healing plan.');
+    if (this.score >= 3000) A('roller', 'HIGH ROLLER', `${this.score} points. The house is nervous.`, 'Chat is spamming POGGERS.');
     // Survival + misc
-    if (s.dmg === 0 && s.pits === 0) A('ghost', 'UNTOUCHABLE', 'Zero damage. Donut is accepting all credit.');
-    if (s.pits >= 3) A('diver', 'PIT ENTHUSIAST', `${s.pits} pits visited. Gravity appreciates the loyalty.`);
-    if (this.hp >= this.maxHP) A('perfect', 'SHOW-OFF', 'Full HP at the stairs. Suspicious. Impressive. Suspicious.');
+    if (s.dmg === 0 && s.pits === 0) A('ghost', 'UNTOUCHABLE', 'Zero damage. Donut is accepting all credit.', 'The dungeon missed. Every time.', 'Plot armor: confirmed.');
+    if (s.dmg === 1) A('flesh', 'FLESH WOUND', 'Exactly 1 damage. Saving the rest for later.', "'Tis but a scratch.");
+    if (s.dmg >= 6) A('sponge', 'DAMAGE SPONGE', `${s.dmg} hits taken. Absorbent. Concerning.`, 'The infirmary knows you by name.');
+    if (s.pits >= 3) A('diver', 'PIT ENTHUSIAST', `${s.pits} pits visited. Gravity appreciates the loyalty.`, 'Down is also a direction.');
+    else if (s.pits >= 1) A('cliff', 'CLIFFHANGER', `${s.pits} pit${s.pits > 1 ? 's' : ''}. Only fell in ${s.pits > 1 ? 'a few times' : 'once'}. Growth.`, 'The pit sends its regards.');
+    if (this.hp >= this.maxHP) A('perfect', 'SHOW-OFF', 'Full HP at the stairs. Suspicious. Impressive. Suspicious.', 'Did not get hit. Will mention it forever.');
+    if (s.ham === 0 && s.dmg > 0) A('hungry', 'HUNGRY AND HURT', 'Took damage on an empty stomach. A bad combo.', 'The ham was RIGHT THERE.');
     const mobCount = this.enemies.getChildren().filter((e) => e.etype !== 'dummy').length;
-    if (kills >= mobCount && kills > 0 && mobCount > 0) A('exterm', 'EXTERMINATOR', 'Everything is dead. The Hoarder sends condolences.');
-    if (missed.crystal > 0) A('waster', 'WASTE NOT, WANT NOT', `Left ${missed.crystal} mana behind. Emphasis on the WANT NOT.`);
-    if (s.star === 0 && missed.star > 0) A('snob', 'LOOT SNOB', 'Stars? Never heard of her.');
-    if (s.casts === 0 && kills > 0) A('nomagic', "WHAT'S MANA?", 'Never cast once. Donut is telling everyone.');
-    if (out.length === 0) A('participant', 'PARTICIPANT', "You showed up. That's... something.");
+    if (kills >= mobCount && kills > 0 && mobCount > 0) A('exterm', 'EXTERMINATOR', 'Everything is dead. The Hoarder sends condolences.', 'Floor swept. Literally.');
+    if (missed.crystal > 0) A('waster', 'WASTE NOT, WANT NOT', `Left ${missed.crystal} rocket fuel behind. Emphasis on the WANT NOT.`, 'Donut saw that. Donut remembers.');
+    if (s.star === 0 && missed.star > 0) A('snob', 'LOOT SNOB', 'Stars? Never heard of her.', 'Too good for stars. Stars disagree.');
+    if (s.casts === 0 && kills > 0) A('norocket', "WHAT'S A ROCKET?", 'Never fired once. Donut is telling everyone.', 'The rocket sat this one out.');
+    if (out.length === 0) A('participant', 'PARTICIPANT', "You showed up. That's... something.", 'Attendance award. Framed.');
+    // Shuffle the earned pool so the 4 shown vary every run.
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
     return out.slice(0, 4);
   }
 
