@@ -807,47 +807,103 @@ export class BootScene extends Phaser.Scene {
       }
     });
 
-    // The last standing tower (intro only): lit windows, antenna. 120x280.
-    // Three of these topple in the Floor 0 opening — then nothing stands.
-    this.stamp(['pre_tower'], 120, 280, (g) => {
-      g.fillStyle(0x0c0e1a, 1);
-      g.fillRect(10, 20, 100, 260);
-      g.fillStyle(0x141828, 1);
-      g.fillRect(10, 20, 100, 14);
-      // lit windows (the lights are still on — for seconds)
+    // The last standing tower (intro only): tiered facade, setbacks, rows of
+    // lit windows, roof clutter, blinking antenna. 140x300.
+    // Three of these pancake straight down in the Floor 0 opening.
+    this.stamp(['pre_tower'], 140, 330, (g) => {
+      // main shaft with side shading
+      g.fillStyle(0x11141f, 1);
+      g.fillRect(18, 70, 104, 260);
+      g.fillStyle(0x1c2233, 1);
+      g.fillRect(18, 70, 22, 260);
+      g.fillStyle(0x080a12, 1);
+      g.fillRect(100, 70, 22, 260);
+      // setback tiers near the top
+      g.fillStyle(0x11141f, 1);
+      g.fillRect(28, 52, 84, 22);
+      g.fillStyle(0x1c2233, 1);
+      g.fillRect(28, 52, 18, 22);
+      g.fillStyle(0x11141f, 1);
+      g.fillRect(40, 38, 60, 16);
+      // window grid (lights still on — for seconds)
       let seed = 21;
       const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-      for (let wy = 44; wy < 268; wy += 18) {
-        for (let wx = 18; wx < 100; wx += 16) {
-          if (rnd() > 0.45) {
-            g.fillStyle(rnd() > 0.7 ? 0xfff2b0 : 0xff9a40, 1);
-            g.fillRect(wx, wy, 8, 10);
+      for (let wy = 82; wy < 318; wy += 20) {
+        for (let wx = 26; wx < 110; wx += 16) {
+          if (rnd() > 0.4) {
+            g.fillStyle(rnd() > 0.65 ? 0xfff2b0 : 0xff9a40, 1);
+            g.fillRect(wx, wy, 9, 12);
+            g.fillStyle(0x000000, 0.35);
+            g.fillRect(wx, wy + 9, 9, 3);
+          } else {
+            g.fillStyle(0x1a2030, 1);
+            g.fillRect(wx, wy, 9, 12);
           }
         }
       }
-      // antenna
+      // mullion lines
+      g.lineStyle(1, 0x05060c, 1);
+      for (let wy = 82; wy < 318; wy += 20) g.lineBetween(18, wy - 3, 122, wy - 3);
+      // roof clutter: AC boxes + railing
+      g.fillStyle(0x232838, 1);
+      g.fillRect(46, 28, 18, 12);
+      g.fillRect(78, 30, 14, 10);
+      g.lineStyle(2, 0x232838, 1);
+      g.lineBetween(28, 52, 112, 52);
+      // antenna with red beacon
       g.fillStyle(0x0c0e1a, 1);
-      g.fillRect(57, 0, 6, 22);
+      g.fillRect(67, 8, 6, 24);
       g.fillStyle(0xff3d3d, 1);
-      g.fillCircle(60, 4, 3);
+      g.fillCircle(70, 6, 4);
+      g.fillStyle(0xffffff, 0.9);
+      g.fillCircle(69, 5, 1.5);
       g.lineStyle(4, INK, 1);
-      g.strokeRect(10, 20, 100, 260);
+      g.strokeRect(18, 70, 104, 260);
     });
 
-    // Prelevel tree Donut waits in: trunk + pine tiers + perch branch. 160x220.
-    this.stamp(['pre_tree'], 160, 220, (g) => {
-      // trunk
-      g.fillStyle(0x4a2e18, 1);
-      g.fillRoundedRect(70, 110, 20, 110, 4);
+    // Prelevel tree Donut waits in: gnarled trunk, four lush moonlit tiers,
+    // thick perch branch with claw marks. 180x250. Donut sits ~[90, 128].
+    this.stamp(['pre_tree'], 180, 250, (g) => {
+      // roots gripping the dirt
       g.fillStyle(0x2e1c0e, 1);
-      g.fillRect(70, 150, 20, 70);
+      g.fillTriangle(70, 250, 95, 250, 84, 218);
+      g.fillTriangle(55, 250, 78, 250, 68, 222);
+      g.fillTriangle(105, 250, 125, 250, 114, 222);
+      // gnarled trunk with bark grooves + moss
+      g.fillStyle(0x4a2e18, 1);
+      g.fillRoundedRect(72, 130, 26, 120, 6);
+      g.fillStyle(0x2e1c0e, 1);
+      g.fillRect(72, 170, 26, 80);
+      g.lineStyle(2, 0x241305, 1);
+      for (const bx of [78, 86, 94]) g.lineBetween(bx, 135, bx - 3, 248);
+      g.fillStyle(0x2a4a22, 1);
+      g.fillEllipse(76, 190, 8, 14);
+      g.fillEllipse(96, 215, 7, 12);
       g.lineStyle(3, INK, 1);
-      g.strokeRoundedRect(70, 110, 20, 110, 4);
-      // pine tiers (dark night green)
-      const tiers = [[80, 30, 130, 60], [80, 70, 110, 55], [80, 110, 90, 50]];
+      g.strokeRoundedRect(72, 130, 26, 120, 6);
+      // four lush tiers: dark mass + needle strokes + moonlit rim
+      const tiers = [
+        [90, 28, 150, 66], [90, 72, 128, 60], [90, 114, 106, 56], [90, 152, 84, 50],
+      ];
+      let seed = 5;
+      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
       for (const [cx, cy, w, h] of tiers) {
         g.fillStyle(0x14301c, 1);
         g.fillTriangle(cx - w / 2, cy + h / 2, cx + w / 2, cy + h / 2, cx, cy - h / 2);
+        // needle strokes
+        g.lineStyle(2, 0x1e4a2a, 1);
+        for (let n = 0; n < 14; n++) {
+          const nx = cx - w / 2 + rnd() * w;
+          const ny = cy - h / 2 + rnd() * h;
+          g.lineBetween(nx, ny, nx - 6 + rnd() * 12, ny + 8);
+        }
+        // moonlit top edge
+        g.lineStyle(3, 0x7ab88a, 1);
+        g.beginPath();
+        g.moveTo(cx - w / 2 + 8, cy + h / 4);
+        g.lineTo(cx, cy - h / 2);
+        g.lineTo(cx + w / 2 - 8, cy + h / 4);
+        g.strokePath();
         g.lineStyle(2, INK, 1);
         g.beginPath();
         g.moveTo(cx - w / 2, cy + h / 2);
@@ -856,15 +912,21 @@ export class BootScene extends Phaser.Scene {
         g.closePath();
         g.strokePath();
       }
-      // perch branch (Donut sits at ~[80, 128])
+      // crown spike
+      g.fillStyle(0x14301c, 1);
+      g.fillTriangle(82, 8, 98, 8, 90, -6 + 14);
+      // thick perch branch (Donut sits at ~[90, 128]) with claw marks
       g.fillStyle(0x4a2e18, 1);
-      g.fillRoundedRect(30, 122, 100, 10, 4);
-      g.lineStyle(2, INK, 1);
-      g.strokeRoundedRect(30, 122, 100, 10, 4);
-      // roots
+      g.fillRoundedRect(28, 122, 118, 13, 5);
       g.fillStyle(0x2e1c0e, 1);
-      g.fillTriangle(70, 220, 90, 220, 80, 195);
-      g.fillTriangle(60, 220, 76, 220, 70, 200);
+      g.fillRect(28, 128, 118, 7);
+      g.lineStyle(2, 0xd8c8a8, 1);
+      for (const [mx, my] of [[60, 126], [74, 125], [104, 126]]) {
+        g.lineBetween(mx, my, mx + 4, my + 3);
+        g.lineBetween(mx + 5, my, mx + 9, my + 3);
+      }
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(28, 122, 118, 13, 5);
     });
 
     // Flame lick for the burning blocks. 32x40, transparent bg.

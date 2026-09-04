@@ -1237,81 +1237,140 @@ export class GameScene extends Phaser.Scene {
     this.preIntro();
   }
 
-  // Floor 0 opening beat: Carl goes outside to get Donut out of the tree
-  // (auto-walk, input locked — SPACE skips). The moment she jumps down,
-  // EVERYTHING whomps into the ground at once. Then: WHAT THE HELL.
+  // Floor 0 opening cinematic (~9s, letterboxed, SPACE skips):
+  // Carl walks out to fetch Donut from the tree, scoops her up on the way
+  // past, then the last towers pancake STRAIGHT DOWN into the ground.
+  // WHAT THE HELL (lingers 4s) → dungeon voice → bars out → run.
   preIntro() {
     this._introLock = true;
     this._introWhomped = false;
     this._introStart = this.time.now;
+    // Letterbox bars slide in.
+    this._introBarTop = this.add.rectangle(640, -45, 1280, 90, 0x000000).setScrollFactor(0, 0).setDepth(990);
+    this._introBarBot = this.add.rectangle(640, 765, 1280, 90, 0x000000).setScrollFactor(0, 0).setDepth(990);
+    this.tweens.add({ targets: this._introBarTop, y: 45, duration: 600, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: this._introBarBot, y: 675, duration: 600, ease: 'Cubic.easeOut' });
+    // Dialogue caption line above the bottom bar.
+    this._introCaption = this.add.text(640, 622, '', {
+      fontFamily: '"Courier New", monospace', fontSize: '20px', fontStyle: 'bold',
+      color: '#fff6e5', stroke: '#000000', strokeThickness: 6, align: 'center',
+    }).setOrigin(0.5).setScrollFactor(0, 0).setDepth(991).setAlpha(0);
     this._introTowers = [];
     for (const tx of [950, 1550, 2250]) {
       this._introTowers.push(
         this.add.image(tx, FLOOR_Y, 'pre_tower').setOrigin(0.5, 1).setDepth(2),
       );
     }
-    // Failsafe: never hold the lock more than 8s, whomp by 5s no matter what.
-    this.time.delayedCall(5000, () => {
+    const say = (at, text, color = '#fff6e5') => {
+      this.time.delayedCall(at, () => {
+        if (this.floor !== 0 || !this._introLock || this.dead) return;
+        this.introCaption(text, color);
+      });
+    };
+    say(400, 'CARL: Donut! Get down from that tree!', '#fff6e5');
+    say(2400, 'DONUT: Mew.', '#ffb000');
+    say(3400, 'CARL: Do you feel that—', '#fff6e5');
+    // Scooped up on the way past (the walk triggers the real join); the
+    // city drops on a fixed beat so the scene always runs ~9s.
+    this.time.delayedCall(4600, () => {
       if (this.floor === 0 && this._introLock && !this._introWhomped) this.introWhomp();
     });
-    this.time.delayedCall(8000, () => {
+    // Failsafe: never hold the lock more than 12s.
+    this.time.delayedCall(12000, () => {
       if (this._introLock) this.finishIntro(true);
     });
   }
 
-  // Called from update(): once Donut jumps down, drop the city.
-  introCheck() {
-    if (!this._introLock || this._introWhomped || this.floor !== 0) return;
-    if (!this.donutWaiting && this.player.x > 380) this.introWhomp();
+  introCaption(text, color) {
+    const c = this._introCaption;
+    if (!c || !c.active) return;
+    c.setText(text).setColor(color);
+    this.tweens.killTweensOf(c);
+    c.setAlpha(1);
+    this.tweens.add({ targets: c, alpha: 0, duration: 500, delay: 1600 });
   }
 
-  // WHOMP: all towers slam into the ground simultaneously.
+  // Called from update(): Donut auto-joins as Carl passes the tree.
+  introCheck() {
+    if (!this._introLock || this.floor !== 0) return;
+  }
+
+  // WHOMP: every tower pancakes STRAIGHT DOWN into the ground, one after
+  // another — shudder, drop, squash, dust rings, heavy shake. Nothing
+  // topples; the city just... sits down.
   introWhomp() {
     if (this._introWhomped || this.floor !== 0) return;
     this._introWhomped = true;
-    this.cameras.main.shake(350, 0.01);
-    for (const tw of (this._introTowers || [])) {
-      const dir = tw.x > 1600 ? -1 : 1;
-      this.tweens.add({
-        targets: tw, angle: dir * 84, y: FLOOR_Y + 70, duration: 550, ease: 'Cubic.easeIn',
-        onComplete: () => {
-          if (this.floor !== 0) { tw.destroy(); return; }
-          this.cameras.main.shake(160, 0.005);
-          const dust = this.add.circle(tw.x + dir * 90, FLOOR_Y - 10, 10, 0x8a7057, 0.8).setDepth(4);
+    this.introCaption('', '#fff6e5');
+    (this._introTowers || []).forEach((tw, i) => {
+      this.time.delayedCall(i * 800, () => {
+        if (!tw.active) return;
+        // Shudder first, then drop.
+        this.tweens.add({ targets: tw, x: '+=6', duration: 60, yoyo: true, repeat: 3 });
+        this.time.delayedCall(260, () => {
+          if (!tw.active) return;
+          this.cameras.main.shake(280, 0.009);
           this.tweens.add({
-            targets: dust, scale: 5, alpha: 0, duration: 700,
-            onComplete: () => { dust.destroy(); tw.destroy(); },
+            targets: tw, y: FLOOR_Y + 230, scaleY: 0.3, duration: 500, ease: 'Cubic.easeIn',
+            onComplete: () => {
+              if (this.floor !== 0) { tw.destroy(); return; }
+              this.cameras.main.shake(160, 0.005);
+              for (const sx of [-80, 80]) {
+                const dust = this.add.circle(tw.x + sx, FLOOR_Y - 10, 10, 0x8a7057, 0.85).setDepth(4);
+                this.tweens.add({
+                  targets: dust, scale: 5, alpha: 0, duration: 800,
+                  onComplete: () => dust.destroy(),
+                });
+              }
+              // The lights go out as it lands.
+              tw.setTint(0x555566);
+              this.time.delayedCall(900, () => tw.destroy());
+            },
           });
-        },
+        });
       });
-    }
-    // Carl, watching the city go: "WHAT THE HELL?!"
-    this.time.delayedCall(800, () => {
+    });
+    // Carl, watching the city sit down: "WHAT THE HELL?!" (lingers 4s).
+    this.time.delayedCall(2600, () => {
       if (this.floor !== 0 || this.dead || this.won) return;
-      this.floatText(this.player.x, this.player.y - 110, 'WHAT THE HELL?!', '#ffffff');
+      this.floatText(this.player.x, this.player.y - 110, 'WHAT THE HELL?!', '#ffffff', 4000);
     });
     // The dungeon voice answers: run to the stairs, join the dungeon.
-    this.time.delayedCall(2000, () => {
+    this.time.delayedCall(3400, () => {
       if (this.floor !== 0 || this.dead || this.won) return;
       this.cameras.main.shake(120, 0.003);
       this.toast('📢 RUN TO THE STAIRS NOW IF YOU WANT TO JOIN THE DUNGEON', '#ffc93d');
     });
-    this.time.delayedCall(2400, () => this.finishIntro(false));
+    // Bars out, control back.
+    this.time.delayedCall(4400, () => this.finishIntro(false));
   }
 
   finishIntro(skipped) {
     if (!this._introLock) return;
     this._introLock = false;
+    // Slide the letterbox out, collapse timer starts now.
+    if (this._introBarTop && this._introBarTop.active) {
+      this.tweens.add({ targets: this._introBarTop, y: -45, duration: 500, onComplete: () => this._introBarTop.destroy() });
+    }
+    if (this._introBarBot && this._introBarBot.active) {
+      this.tweens.add({ targets: this._introBarBot, y: 765, duration: 500, onComplete: () => this._introBarBot.destroy() });
+    }
+    if (this._introCaption && this._introCaption.active) this._introCaption.destroy();
+    this._collapseAcc = 0;
     if (skipped && !this._introWhomped) {
       // Skip: drop the city instantly, say the lines, hand over control.
       this.introWhomp();
       this._introLock = false;
+      if (this._introBarTop && this._introBarTop.active) this._introBarTop.destroy();
+      if (this._introBarBot && this._introBarBot.active) this._introBarBot.destroy();
+      if (this._introCaption && this._introCaption.active) this._introCaption.destroy();
     }
   }
 
   // Floor 0 per-frame: fire damage + collapse escalation timer.
+  // Paused during the opening cinematic; the timer starts on handover.
   updateCollapse(delta) {
-    if (this.dead || this.won || this.descending || this.floor !== 0) return;
+    if (this.dead || this.won || this.descending || this.floor !== 0 || this._introLock) return;
     const px = this.player.x;
     const feetY = this.player.y + 35;
     // Burning streets hurt.
@@ -2105,9 +2164,9 @@ export class GameScene extends Phaser.Scene {
     // ----- Horizontal movement -----
     const spd = this.buffs.speed;
     if (this._introLock) {
-      // Opening beat: Carl walks outside to the tree on his own.
-      // SPACE skips the intro.
-      if (this.player.x < 380) {
+      // Opening beat: Carl walks out to the tree, scoops Donut up on the
+      // way past, then stops to watch the city sit down. SPACE skips.
+      if (!this._introWhomped && this.player.x < 520) {
         body.setAccelerationX(PLAYER.accel * spd);
         this.carlVis.setFacing(1);
       } else {
@@ -2769,7 +2828,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  floatText(x, y, str, color) {
+  floatText(x, y, str, color, lingerMs = 0) {
     const t = this.add.text(x, y, str, {
       fontFamily: 'Courier New, monospace',
       fontSize: '20px',
@@ -2779,6 +2838,7 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(600);
     this.tweens.add({
       targets: t, y: y - 44, alpha: 0, duration: 800, ease: 'Cubic.easeOut',
+      delay: lingerMs,
       onComplete: () => t.destroy(),
     });
   }
