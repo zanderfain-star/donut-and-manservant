@@ -142,6 +142,14 @@ export class UIScene extends Phaser.Scene {
       color: '#6effff',
     })).setOrigin(0.5, 1).setDepth(500);
 
+    // Release stamp — bottom-right, so players can tell which build is live.
+    this.versionText = ink(this.add.text(1272, 712, 'v2.11', {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#8a7a5a',
+    })).setOrigin(1, 1).setDepth(500);
+
     // Global retry/menu keys — valid any time, not just on overlays
     // (GameScene binds no R/M keys, so there is no conflict).
     // ESC stays overlay-only (below) to avoid accidental quits mid-run.
@@ -285,6 +293,15 @@ export class UIScene extends Phaser.Scene {
     }
     const g = this.gameScene;
     if (!this._uiReady || !g || !g.player) return;
+
+    // ----- FPS next to the release stamp (refreshed 2x/sec) -----
+    this._fpsAcc = (this._fpsAcc || 0) + (g.game.loop.delta || 16.7);
+    if (this._fpsAcc > 500) {
+      this._fpsAcc = 0;
+      const fps = Math.round(g.game.loop.actualFps || 0);
+      if (this.versionText) this.versionText.setText(`v2.11 • ${fps} FPS`);
+      this.versionText.setColor(fps >= 50 ? '#8a7a5a' : fps >= 30 ? '#ffaa3d' : '#ff3d3d');
+    }
 
     // ----- HP hearts — THE BUG FIX -----
     // Old code: '░'.repeat(5 - hp) → RangeError when hp=8 (maxHP=8).

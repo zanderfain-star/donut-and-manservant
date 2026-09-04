@@ -1,6 +1,6 @@
 {
   "name": "donut-and-manservant",
-  "version": "1.1.0",
+  "version": "2.11.0",
   "description": "A fan-made sidescroller honoring Dungeon Crawler Carl by Matt Dinniman (https://mattdinniman.com/books/dungeon-crawler-carl/), built with Phaser 3.",
   "license": "MIT",
   "private": true,
