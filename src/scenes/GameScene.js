@@ -43,6 +43,7 @@ const PLAYER = {
   bufferMs: 120,
   punchCd: 220,
   magicCd: 350,
+  bombCd: 1200,
 };
 
 const MANA = {
@@ -604,12 +605,13 @@ export class GameScene extends Phaser.Scene {
     this.lastHurtAt = -10000;
     this.lastPunchAt = -10000;
     this.lastMagicAt = -10000;
+    this.lastBombAt = -10000;
     this.lastGroundedAt = -10000;
     this.lastJumpAt = -10000;
     this.stomping = false;
     // Playstyle stats for the end-of-floor goofy achievements.
     this.stats = {
-      punch: 0, stomp: 0, magic: 0, mongo: 0, casts: 0,
+      punch: 0, stomp: 0, magic: 0, mongo: 0, bomb: 0, casts: 0,
       dmg: 0, pits: 0, ham: 0, star: 0, crystal: 0, box: 0, swine: 0, ralph: 0, heather: 0, amalgam: 0,
       t0: this.time.now,
     };
@@ -626,6 +628,11 @@ export class GameScene extends Phaser.Scene {
     this.missiles = this.physics.add.group({
       defaultKey: 'magic_missile',
       maxSize: 12,
+      runChildUpdate: false,
+    });
+    this.bombs = this.physics.add.group({
+      defaultKey: 'bomb',
+      maxSize: 8,
       runChildUpdate: false,
     });
     this.enemyShots = this.physics.add.group({
@@ -682,6 +689,13 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.floorGroup);
     this.physics.add.collider(this.enemies, this.platformGroup);
     this.physics.add.collider(this.missiles, this.floorGroup, (m) => this.killMissile(m));
+    // Bombs ARC (gravity) and explode on touch — floor, platforms, enemies.
+    this.physics.add.collider(this.bombs, this.floorGroup, (b) => this.explodeBomb(b));
+    this.physics.add.collider(this.bombs, this.platformGroup, (b) => this.explodeBomb(b));
+    this.physics.add.overlap(this.bombs, this.enemies, (b, e) => {
+      if (!b.active || !e.alive) return;
+      this.explodeBomb(b);
+    });
     // Missiles FLY THROUGH platforms (thin 8px ledges) — they only die on
     // the floor or on enemies. Otherwise every bolt fired from the floor
     // under a y580 walk-under step dies on its edge. Enemies on platforms
@@ -708,7 +722,7 @@ export class GameScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys({
       left: 'A', right: 'D',
       jump: 'W', jumpAlt: 'SPACE', jumpArrow: 'UP',
-      punch: 'J', stomp: 'K', magic: 'L',
+      punch: 'J', stomp: 'K', magic: 'L', bomb: 'U',
     });
     this.input.keyboard.resetKeys();
 
@@ -753,6 +767,14 @@ export class GameScene extends Phaser.Scene {
       this.time.delayedCall(at, () => {
         if (this.dead || this.won) return;
         this.events.emit('toast', msg);
+      });
+    }
+    // Bomb toss unlock: live from Floor 2 onward, once per run on Floor 2.
+    if (this.floor === 2) {
+      this.time.delayedCall(500, () => {
+        if (this.dead || this.won) return;
+        this.events.emit('toast', 'BOMB TOSS UNLOCKED — press [U]!');
+        this.toast('BOMB TOSS UNLOCKED — press [U]!', '#ffc93d');
       });
     }
   }
@@ -1059,7 +1081,7 @@ export class GameScene extends Phaser.Scene {
   // plaques vary run to run, and most quips roll a random variant.
   computeAchievements() {
     const s = this.stats;
-    const kills = s.punch + s.stomp + s.magic + s.mongo;
+    const kills = s.punch + s.stomp + s.magic + s.mongo + s.bomb;
     const missed = { ham: 0, star: 0, crystal: 0 };
     this.pickups.getChildren().forEach((p) => {
       // Collected pickups are destroy()ed but keep active=true — skip taken.
@@ -1075,13 +1097,14 @@ export class GameScene extends Phaser.Scene {
     });
     // Playstyle (how you fought)
     if (kills === 0) A('pacifist', 'CERTIFIED LOVER', "0 kills. Carl's fists have filed a complaint.", 'Hugging it out. The dungeon is confused.', 'Violence declined. Donut respects it. Carl does not.');
-    if (kills > 0 && s.stomp === 0 && s.magic === 0 && s.mongo === 0) A('fists', 'PUNCH DRUNK', 'Every problem is a nail. You are the hammer.', 'Hands rated E for Everyone. The baddies disagree.', 'The Marquis of Queensbury sends his regards.');
-    if (kills > 0 && s.punch === 0 && s.stomp === 0 && s.mongo === 0) A('artillery', 'CAT ARTILLERY', 'Donut did 100% of the killing. Carl supervised.', 'Fire support, feline division.', 'Carl pointed. Donut deleted.');
-    if (kills > 0 && s.punch === 0 && s.magic === 0 && s.mongo === 0) A('stomp', 'SMOOSH SUPREME', 'The floor sends its regards. And a chiropractor bill.', 'Gravity did most of the work. Carl takes the credit.', 'Local floors file noise complaint.');
+    if (kills > 0 && s.stomp === 0 && s.magic === 0 && s.mongo === 0 && s.bomb === 0) A('fists', 'PUNCH DRUNK', 'Every problem is a nail. You are the hammer.', 'Hands rated E for Everyone. The baddies disagree.', 'The Marquis of Queensbury sends his regards.');
+    if (kills > 0 && s.punch === 0 && s.stomp === 0 && s.mongo === 0 && s.bomb === 0) A('artillery', 'CAT ARTILLERY', 'Donut did 100% of the killing. Carl supervised.', 'Fire support, feline division.', 'Carl pointed. Donut deleted.');
+    if (kills > 0 && s.punch === 0 && s.magic === 0 && s.mongo === 0 && s.bomb === 0) A('stomp', 'SMOOSH SUPREME', 'The floor sends its regards. And a chiropractor bill.', 'Gravity did most of the work. Carl takes the credit.', 'Local floors file noise complaint.');
     if (s.punch >= 8) A('slugger', 'CERTIFIED SLUGGER', `${s.punch} punches landed. Somebody's been skipping leg day.`, 'Fists of fury, sponsored by spite.');
     if (s.stomp >= 5) A('seismic', 'SEISMIC EVENT', `${s.stomp} smooshes. Seismographs noticed.`, 'The dungeon downstairs felt that one.');
     if (s.casts >= 6) A('rocketman', 'ROCKET MAN', 'Donut is filing for overtime.', 'Elton John sends regards.', 'Six-plus rockets. Subtlety left the chat.');
     if (s.magic >= 4) A('firesupport', 'FIRE SUPPORT', 'Donut provides. Carl supervises.', 'Death from slightly above.');
+    if (s.bomb >= 3) A('bombardier', 'BOMBARDIER', 'Carl throws. The dungeon catches.', 'Demolition: now a Carl hobby.');
     if (s.casts > 0 && s.magic === 0) A('stormtrooper', 'STORMTROOPER', `Fired ${s.casts} rocket${s.casts > 1 ? 's' : ''}. Hit nothing. Donut blames the wind.`, 'Aim is a team effort. The team failed.');
     if (kills >= 20) A('riot', 'ONE-MAN RIOT', `${kills} kills. The crawlers are taking notes.`, 'Mordecai just clipped that.');
     else if (kills >= 12) A('crowd', 'CROWD CONTROL', `${kills} kills. The queue has been shortened.`, 'Packed house. Emptier now.');
@@ -1839,7 +1862,7 @@ export class GameScene extends Phaser.Scene {
     e.alive = false;
     e.body.setEnable(false);
     e.setTint(0x300808);
-    if (source === 'punch' || source === 'stomp' || source === 'magic' || source === 'mongo') {
+    if (source === 'punch' || source === 'stomp' || source === 'magic' || source === 'mongo' || source === 'bomb') {
       this.stats[source] += 1;
     }
 
@@ -2269,6 +2292,11 @@ export class GameScene extends Phaser.Scene {
       this.doMagicMissile(time);
     }
 
+    // ----- Bomb toss (1200ms cd, Floor 2+, arcs + AoE) -----
+    if (!this._introLock && Phaser.Input.Keyboard.JustDown(this.keys.bomb)) {
+      this.throwBomb(time);
+    }
+
     // ----- Mana regen: +1 per 6s -----
     if (this.mana < this.maxMana) {
       this.manaRegenAcc += delta;
@@ -2564,6 +2592,51 @@ export class GameScene extends Phaser.Scene {
     if (!m.active) return;
     m.setActive(false).setVisible(false);
     m.body.setVelocity(0, 0);
+  }
+
+  // BOMB TOSS (Floor 2+, [U]): arcing iron ball, AoE 2 dmg in 95px.
+  throwBomb(time) {
+    if (this.floor < 2) {
+      this.toast('BOMBS UNLOCK AT FLOOR 2!', '#888888');
+      this.events.emit('toast', 'BOMBS UNLOCK AT FLOOR 2!');
+      return;
+    }
+    if (time - this.lastBombAt < PLAYER.bombCd) return;
+    const b = this.bombs.get(this.carlVis.x + this.carlVis.facing * 32, this.carlVis.y - 60);
+    if (!b) return;
+    this.lastBombAt = time;
+    const dir = this.carlVis.facing;
+    b.setActive(true).setVisible(true);
+    b.setDepth(25);
+    b.setScale(1);
+    b.clearTint();
+    b.body.setAllowGravity(true);
+    b.body.setCircle(8, 2, 2);
+    b.body.setVelocity(dir * 340, -460);
+    // Fuse backup: air-burst after 2.2s if nothing was touched.
+    this.time.delayedCall(2200, () => { if (b.active) this.explodeBomb(b); });
+  }
+
+  explodeBomb(b) {
+    if (!b || !b.active) return;
+    const bx = b.x;
+    const by = b.y;
+    b.setActive(false).setVisible(false);
+    b.body.setVelocity(0, 0);
+    b.body.setAllowGravity(false);
+    // Explosion flash: 'boom' star burst, scale/fade out.
+    const flash = this.add.image(bx, by, 'boom').setDepth(27).setScale(0.3).setAlpha(1);
+    this.tweens.add({
+      targets: flash, scale: 1.4, alpha: 0, duration: 280, ease: 'Cubic.easeOut',
+      onComplete: () => flash.destroy(),
+    });
+    this.cameras.main.shake(140, 0.006);
+    // AoE: 2 dmg to every enemy within 95px (boss cap lives in damageEnemy).
+    this.enemies.getChildren().forEach((e) => {
+      if (!e.alive) return;
+      const d = Phaser.Math.Distance.Between(bx, by, e.x, e.y);
+      if (d < 95) this.damageEnemy(e, 2, 'bomb');
+    });
   }
 
   /* ==========================================================

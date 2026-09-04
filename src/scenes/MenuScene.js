@@ -213,10 +213,11 @@ export class MenuScene extends Phaser.Scene {
       ['[J]', 'punch (short range)'],
       ['[K]', 'stomp (mid-air slam — one-shots!)'],
       ['[L]', 'DONUT ROCKET (Donut fires!)'],
+      ['[U]', 'bomb toss (Floor 2+)'],
       ['[R] / [M]', 'restart floor / menu'],
     ];
-    const startY = panelY - 62;
-    const lineH = 27;
+    const startY = panelY - 76;
+    const lineH = 25;
     lines.forEach(([keys, desc], i) => {
       this.add.text(panelX - panelW / 2 + 30, startY + i * lineH, keys, {
         fontFamily: '"Courier New", monospace',
@@ -276,7 +277,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // ----- Footer -----
-    this.add.text(W - 24, H - 24, 'v2.11 • CC0 art • Phaser 3', {
+    this.add.text(W - 24, H - 24, 'v2.12 • CC0 art • Phaser 3', {
       fontFamily: '"Courier New", monospace',
       fontSize: '10px',
       color: '#6e4828',

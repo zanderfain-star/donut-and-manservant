@@ -191,6 +191,59 @@ export class BootScene extends Phaser.Scene {
       g.fillEllipse(13, 11.5, 9, 4);
     });
 
+    // Bomb toss — dark iron ball, fuse + spark. 20px, reads mid-arc.
+    this.stamp(['bomb'], 20, 20, (g) => {
+      // iron ball
+      g.fillStyle(INK, 1);
+      g.fillCircle(10, 12, 8);
+      g.fillStyle(0x2a2030, 1);
+      g.fillCircle(10, 12, 6.5);
+      // cel highlight blob
+      g.fillStyle(0x5a4a6a, 1);
+      g.fillCircle(8, 10, 2.8);
+      g.fillStyle(0xffffff, 0.85);
+      g.fillCircle(7, 9, 1.1);
+      // fuse + spark
+      g.fillStyle(0x8a5a30, 1);
+      g.fillRect(9, 0, 2, 6);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(9, 0, 9, 6);
+      g.lineBetween(11, 0, 11, 6);
+      g.fillStyle(0xffc93d, 1);
+      g.fillCircle(10, 2, 2.5);
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(9.5, 1.5, 1);
+      g.lineStyle(2, INK, 1);
+      g.strokeCircle(10, 12, 8);
+    });
+
+    // Boom — explosion flash star burst for bomb impacts. 96px.
+    this.stamp(['boom'], 96, 96, (g) => {
+      const pts = [];
+      for (let i = 0; i < 24; i++) {
+        const r = i % 2 === 0 ? 44 : 28;
+        const a = (Math.PI * i) / 12 - Math.PI / 2;
+        pts.push(new Phaser.Math.Vector2(48 + Math.cos(a) * r, 48 + Math.sin(a) * r));
+      }
+      g.fillStyle(0xff5a20, 1);
+      g.fillPoints(pts, true);
+      g.lineStyle(4, INK, 1);
+      g.strokePoints(pts, true);
+      // inner flash
+      const inner = [];
+      for (let i = 0; i < 16; i++) {
+        const r = i % 2 === 0 ? 28 : 17;
+        const a = (Math.PI * i) / 8 - Math.PI / 2;
+        inner.push(new Phaser.Math.Vector2(48 + Math.cos(a) * r, 48 + Math.sin(a) * r));
+      }
+      g.fillStyle(0xffc93d, 1);
+      g.fillPoints(inner, true);
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(48, 48, 12);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(48, 48, 12);
+    });
+
     // Punch fist — giant cartoon fist ~Carl-width (96px). Skin + brass
     // knuckle band + ink outline + motion lines. Faces RIGHT; flip for left.
     this.stamp(['punch_fist'], 96, 64, (g) => {

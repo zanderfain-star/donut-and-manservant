@@ -143,7 +143,7 @@ export class UIScene extends Phaser.Scene {
     })).setOrigin(0.5, 1).setDepth(500);
 
     // Release stamp — bottom-right, so players can tell which build is live.
-    this.versionText = ink(this.add.text(1272, 712, 'v2.11', {
+    this.versionText = ink(this.add.text(1272, 712, 'v2.12', {
       fontFamily: '"Courier New", monospace',
       fontSize: '12px',
       fontStyle: 'bold',
@@ -303,7 +303,7 @@ export class UIScene extends Phaser.Scene {
       const fps = Math.round((this._fpsFrames * 1000) / Math.max(1, nowMs - this._fpsMark));
       this._fpsFrames = 0;
       this._fpsMark = nowMs;
-      if (this.versionText) this.versionText.setText(`v2.11 • ${fps} FPS`);
+      if (this.versionText) this.versionText.setText(`v2.12 • ${fps} FPS`);
       this.versionText.setColor(fps >= 50 ? '#6effff' : fps >= 30 ? '#ffe93d' : '#ff3d3d');
     }
 
@@ -375,6 +375,15 @@ export class UIScene extends Phaser.Scene {
     if (typeof g.zoneName === 'string' && g.zoneName.length) {
       const z = g.zoneName.toUpperCase().slice(0, 34);
       if (this.zoneText.text !== z) this.zoneText.setText(z);
+    }
+
+    // ----- Controls footer (bomb hint only once unlocked on Floor 2+) -----
+    {
+      const unlocked = typeof g.floor === 'number' && g.floor >= 2;
+      const footer = unlocked
+        ? '[A/D] move  [W/SPACE] jump  [J] punch  [K] stomp  [L] rocket  [U] bomb  [R] retry  [M] menu'
+        : '[A/D] move  [W/SPACE] jump  [J] punch  [K] stomp  [L] rocket  [R] retry  [M] menu';
+      if (this.controlsText && this.controlsText.text !== footer) this.controlsText.setText(footer);
     }
 
     // ----- Progress bar + % -----

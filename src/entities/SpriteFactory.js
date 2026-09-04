@@ -28,8 +28,8 @@ import Phaser from 'phaser';
  *   .colorSprite, .outlineSprite, (Donut also ._floatOffsetY)
  */
 
-const CARL_W = 96;
-const CARL_H = 128;
+const CARL_W = 144;
+const CARL_H = 192;
 const DONUT_W = 64;
 const DONUT_H = 64;
 
@@ -111,11 +111,276 @@ function inkLine(g, x1, y1, x2, y2, thickness = 2) {
 }
 
 /* ------------------------------------------------------------------ */
-/* CARL — 96x128, facing right, feet at y=128. @johnrubio-inspired:    */
-/* bearded jaw, heavy muscle, gauntlet arm thrown BACK (screen-left),  */
-/* bare arm forward, flowing cape, heart boxers, spiked knees.         */
-/* Poses: idle (stance) / run1 / run2 (stride + pump + cape wave).     */
+/* CARL — 144x192, facing right, feet at y=192. @johnrubio-inspired:    */
+/* bearded jaw, heavy VEINED muscle, gauntlet arm thrown BACK, bare arm */
+/* forward, flowing scarf-cape, heart boxers, spiked knees, bare feet.  */
+/* Poses: idle (stance) / run1 / run2 (stride + pump + cape wave).      */
 /* ------------------------------------------------------------------ */
+
+// Vein + muscle-line detail over a limb segment (detail pass only).
+// NOTE: Phaser.GameObjects.Graphics has no quadraticCurveTo — veins are
+// two straight segments via moveTo/lineTo (same API drawCarlLimb uses).
+function drawCarlVeins(g, x1, y1, x2, y2) {
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const sx = x1 + (mx - x1) * 0.4 - 3;
+  const sy = y1 + (my - y1) * 0.4;
+  g.lineStyle(2, INK, 0.85);
+  g.beginPath();
+  g.moveTo(sx, sy);
+  g.lineTo(mx - 2, my - 4);
+  g.lineTo(mx + 4, my + 2);
+  g.strokePath();
+  g.lineStyle(1, INK, 0.7);
+  g.beginPath();
+  g.moveTo(mx + 2, my + 2);
+  g.lineTo(mx + 8, my + 8);
+  g.lineTo(x2 - 4, y2 - 3);
+  g.strokePath();
+}
+
+function drawCarl(g, outlineOnly, pose) {
+  const C = comicPalette(outlineOnly);
+  const run = pose === 'run1' ? 1 : pose === 'run2' ? -1 : 0;
+
+  // ---- SCARF-CAPE (behind everything, flows left; waves with stride) ----
+  const capeLift = pose === 'run1' ? -12 : pose === 'run2' ? -4 : 6;
+  const capePts = [
+    [69, 54], [30, 57 + capeLift], [9, 87 + capeLift], [15, 126 + capeLift],
+    [24, 117 + capeLift], [30, 135 + capeLift], [39, 123 + capeLift],
+    [48, 138 + capeLift], [57, 123 + capeLift], [66, 93], [72, 72],
+  ];
+  poly(g, capePts, C.cape);
+  if (!outlineOnly) {
+    poly(g, [[30, 58 + capeLift], [12, 87 + capeLift], [16, 120 + capeLift], [25, 115 + capeLift], [27, 75 + capeLift]], C.capeDark);
+    g.fillStyle(C.hairHi, 1);
+    g.fillRect(60, 55, 7, 21);
+    inkPoly(g, capePts, 4);
+    inkLine(g, 45, 66 + capeLift, 36, 114 + capeLift, 2);
+    inkLine(g, 56, 62 + capeLift, 50, 108 + capeLift, 1);
+    // tattered hem nicks
+    inkLine(g, 15, 126 + capeLift, 24, 117 + capeLift, 2);
+    inkLine(g, 30, 135 + capeLift, 39, 123 + capeLift, 2);
+  }
+
+  // ---- REAR ARM = GAUNTLET (thrown back like the reference lunge) ----
+  // shoulder (69,72) -> elbow -> spiked fist.
+  const gElbow = pose === 'idle' ? [42, 93] : run === 1 ? [36, 84] : [42, 90];
+  // run1/run2 fists nudged in-bounds: spikes reach r+6=24 past center,
+  // so center x must stay >= 24 (canvas is 0..143).
+  const gFist = pose === 'idle' ? [36, 120] : run === 1 ? [26, 75] : [25, 84];
+  drawCarlLimb(g, C, 69, 72, gElbow[0], gElbow[1], 24, !outlineOnly);
+  drawCarlLimb(g, C, gElbow[0], gElbow[1], gFist[0], gFist[1], 20, false);
+  if (!outlineOnly) {
+    drawCarlVeins(g, 69, 72, gElbow[0], gElbow[1]);
+    // deltoid cap lines
+    inkLine(g, 62, 66, 76, 62, 2);
+    inkLine(g, 60, 74, 74, 70, 1);
+  }
+  // red wrap at the wrist, then the brass
+  g.fillStyle(C.wrap, 1);
+  g.fillCircle(gFist[0] + 4, gFist[1] - 3, 10);
+  if (!outlineOnly) {
+    g.lineStyle(3, INK, 1);
+    g.strokeCircle(gFist[0] + 4, gFist[1] - 3, 10);
+    inkLine(g, gFist[0] - 3, gFist[1] - 8, gFist[0] + 10, gFist[1] - 6, 2);
+  }
+  drawCarlFist(g, C, gFist[0], gFist[1], 18, outlineOnly ? { quiet: true } : true);
+
+  // ---- LEGS (stride phases; idle feet end at y≈191, sole on 192) ----
+  // Each leg: hip -> knee -> foot, then knee pad + bare foot with toes.
+  // run1 back foot kept at fx<=124: toe ellipse (cx=fx+4, rx=13) must end <=143.
+  const legs = pose === 'idle'
+    ? [{ hip: [75, 129], knee: [72, 156], foot: [72, 185] }, { hip: [99, 129], knee: [102, 156], foot: [102, 185] }]
+    : run === 1
+      ? [{ hip: [75, 129], knee: [48, 150], foot: [33, 177] }, { hip: [99, 129], knee: [120, 150], foot: [124, 180] }]
+      : [{ hip: [75, 129], knee: [57, 153], foot: [51, 182] }, { hip: [99, 129], knee: [108, 147], foot: [90, 183] }];
+  for (const leg of legs) {
+    const [hx, hy] = leg.hip;
+    const [kx, ky] = leg.knee;
+    const [fx, fy] = leg.foot;
+    drawCarlLimb(g, C, hx, hy, kx, ky, 26, !outlineOnly);
+    drawCarlLimb(g, C, kx, ky, fx, fy - 6, 20, false);
+    if (!outlineOnly) {
+      drawCarlVeins(g, hx, hy, kx, ky);
+      // quad sweep + calf diamond
+      inkLine(g, hx - 8, hy + 12, kx - 6, ky - 8, 2);
+      inkLine(g, kx + 2, ky + 8, fx + 1, fy - 12, 1);
+    }
+    // spiked knee pad (brass, spikes forward — silhouette, so spikes are
+    // drawn in BOTH passes; the ink halo must cover the spike tips).
+    // Spike reach kx+22 keeps even the widest stance (kx=120) in-canvas.
+    g.fillStyle(C.brass, 1);
+    g.fillRoundedRect(kx - 14, ky - 11, 29, 20, 6);
+    g.fillTriangle(kx + 15, ky - 8, kx + 22, ky - 2, kx + 15, ky + 4);
+    g.fillTriangle(kx + 15, ky + 0, kx + 22, ky + 6, kx + 15, ky + 12);
+    g.fillTriangle(kx + 15, ky - 2, kx + 22, ky + 1, kx + 15, ky + 4);
+    if (!outlineOnly) {
+      g.fillStyle(C.brassDark, 1);
+      g.fillRect(kx - 14, ky + 3, 29, 6);
+      g.fillStyle(C.brassHi, 1);
+      g.fillRect(kx - 11, ky - 9, 8, 5);
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(kx - 14, ky - 11, 29, 20, 6);
+    }
+    // bare foot: heel-to-toe + 3 toes, facing right
+    g.fillStyle(C.skin, 1);
+    g.fillEllipse(fx + 4, fy, 26, 12);
+    if (!outlineOnly) {
+      g.fillStyle(C.skinShadow, 1);
+      g.fillEllipse(fx + 4, fy + 3, 23, 6);
+      g.fillStyle(C.skinHi, 1);
+      g.fillEllipse(fx - 2, fy - 3, 10, 5);
+      inkLine(g, fx + 10, fy - 2, fx + 16, fy - 2, 2);
+      inkLine(g, fx + 10, fy + 2, fx + 16, fy + 2, 2);
+      inkLine(g, fx + 4, fy + 5, fx + 12, fy + 5, 1);
+      g.lineStyle(3, INK, 1);
+      g.strokeEllipse(fx + 4, fy, 26, 12);
+    }
+  }
+
+  // ---- BOXERS (white, red hearts, longer shorts cut + waistband) ----
+  g.fillStyle(C.boxer, 1);
+  g.fillRoundedRect(60, 102, 57, 30, 6);
+  if (!outlineOnly) {
+    g.fillStyle(C.boxerShadow, 1);
+    g.fillRect(60, 124, 57, 8);
+    // waistband
+    g.fillStyle(C.heart, 1);
+    g.fillRect(60, 102, 57, 7);
+    g.fillStyle(C.boxer, 1);
+    for (let wx = 64; wx < 114; wx += 8) g.fillRect(wx, 103, 4, 5);
+    const hearts = [
+      [70, 115], [80, 114], [90, 114], [100, 115], [109, 116],
+      [75, 122], [85, 122], [95, 122], [105, 123],
+    ];
+    g.fillStyle(C.heart, 1);
+    for (const [hx, hy] of hearts) {
+      g.fillCircle(hx - 1.8, hy, 3);
+      g.fillCircle(hx + 1.8, hy, 3);
+      g.fillTriangle(hx - 4.2, hy + 1.5, hx + 4.2, hy + 1.5, hx, hy + 6.2);
+    }
+    inkLine(g, 60, 102, 117, 102, 3);
+    inkLine(g, 60, 102, 60, 132, 3);
+    inkLine(g, 117, 102, 117, 132, 3);
+    inkLine(g, 60, 109, 117, 109, 1);
+  }
+
+  // ---- TORSO (heavy muscle: lats, pecs, 6-pack, obliques) ----
+  g.fillStyle(C.skin, 1);
+  g.fillRoundedRect(54, 57, 63, 51, 13);
+  if (!outlineOnly) {
+    g.fillStyle(C.skinShadow, 1);
+    g.fillRoundedRect(105, 60, 12, 45, 6); // front lat shadow
+    g.fillStyle(C.skinHi, 1);
+    g.fillEllipse(66, 72, 16, 26); // cel light upper-left
+    // pecs with lower curves
+    inkLine(g, 63, 78, 84, 78, 4);
+    inkLine(g, 90, 77, 110, 80, 4);
+    inkLine(g, 66, 82, 82, 84, 1);
+    inkLine(g, 92, 82, 108, 84, 1);
+    // abs: 3 rows + center line + obliques
+    inkLine(g, 78, 90, 105, 90, 3);
+    inkLine(g, 78, 97, 105, 97, 3);
+    inkLine(g, 81, 104, 102, 104, 2);
+    inkLine(g, 91, 86, 91, 104, 2);
+    inkLine(g, 74, 92, 78, 102, 1);
+    inkLine(g, 109, 92, 105, 102, 1);
+    g.fillStyle(C.skinShadow, 1);
+    g.fillCircle(91, 107, 2); // navel
+    g.lineStyle(4, INK, 1);
+    g.strokeRoundedRect(54, 57, 63, 51, 13);
+  }
+
+  // ---- FRONT ARM (bare, veined, pumps with stride) ----
+  // run1 fist kept at x<=130: knuckle r12 + stroke must end <=143.
+  const fSh = [105, 69];
+  const fEl = pose === 'idle' ? [111, 93] : run === 1 ? [126, 81] : [117, 93];
+  const fFi = pose === 'idle' ? [108, 108] : run === 1 ? [130, 93] : [102, 105];
+  drawCarlLimb(g, C, fSh[0], fSh[1], fEl[0], fEl[1], 22, !outlineOnly);
+  drawCarlLimb(g, C, fEl[0], fEl[1], fFi[0], fFi[1], 18, false);
+  if (!outlineOnly) {
+    drawCarlVeins(g, fSh[0], fSh[1], fEl[0], fEl[1]);
+    drawCarlVeins(g, fEl[0], fEl[1], fFi[0], fFi[1]);
+    inkLine(g, 99, 62, 112, 58, 2); // front delt cap
+  }
+  drawCarlFist(g, C, fFi[0], fFi[1], 12, outlineOnly ? 'bare-quiet' : false);
+
+  // ---- NECK + TRAPS ----
+  g.fillStyle(C.skinShadow, 1);
+  g.fillRect(81, 45, 18, 15);
+  g.fillStyle(C.skin, 1);
+  poly(g, [[69, 63], [117, 63], [102, 45], [81, 45]], C.skin);
+  if (!outlineOnly) {
+    inkLine(g, 69, 63, 117, 63, 3);
+    inkLine(g, 78, 50, 72, 60, 1); // trap striations
+    inkLine(g, 108, 50, 112, 60, 1);
+  }
+
+  // ---- HEAD (face + full BEARD jaw, centered over torso: x64-106) ----
+  g.fillStyle(C.skin, 1);
+  g.fillRoundedRect(64, 9, 42, 39, 9);
+  if (!outlineOnly) {
+    // beard: full lower-face mass (the @johnrubio jaw)
+    g.fillStyle(C.stubble, 1);
+    g.fillRoundedRect(64, 33, 42, 15, 6);
+    g.fillStyle(C.hairDark, 1);
+    for (let bx = 67; bx <= 100; bx += 5) {
+      g.fillRect(bx, 36, 3, 4);
+      g.fillRect(bx + 2, 42, 3, 3);
+    }
+    g.fillStyle(C.skinHi, 1);
+    g.fillEllipse(72, 16, 10, 12); // cheek light
+    // intense eyes under heavy brows
+    g.fillStyle(C.eyeWhite, 1);
+    g.fillRect(73, 20, 10, 7);
+    g.fillRect(90, 20, 10, 7);
+    g.fillStyle(INK, 1);
+    g.fillRect(77, 21, 4, 6);
+    g.fillRect(94, 21, 4, 6);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(78, 22, 1.2);
+    g.fillCircle(95, 22, 1.2);
+    inkLine(g, 70, 15, 84, 19, 4); // brow L, angry
+    inkLine(g, 110, 15, 96, 19, 4); // brow R, angry
+    // nose: bridge + nostril
+    inkLine(g, 86, 24, 85, 31, 2);
+    inkLine(g, 85, 31, 89, 32, 2);
+    // grim mouth under beard edge
+    inkLine(g, 79, 44, 98, 43, 3);
+    inkLine(g, 83, 46, 93, 46, 1);
+    // ear with inner ridge
+    g.fillStyle(C.skin, 1);
+    g.fillRect(103, 27, 7, 10);
+    g.fillStyle(C.skinShadow, 1);
+    g.fillRect(106, 29, 3, 6);
+    inkLine(g, 103, 27, 103, 37, 3);
+    g.lineStyle(4, INK, 1);
+    g.strokeRoundedRect(64, 9, 42, 39, 9);
+  }
+
+  // ---- HAIR (short red crop, spiked fringe, bounce per stride) ----
+  // Whole mass sits 2px below the canvas top so the silhouette + ink halo
+  // are never clipped (valid canvas rows are 0..191).
+  const bounce = pose === 'idle' ? 0 : run === 1 ? -3 : 2;
+  const hairPts = [
+    [61, 23 + bounce], [58, 8 + bounce], [67, 2], [85, 2], [103, 3],
+    [111, 9 + bounce], [106, 20 + bounce], [100, 11], [94, 20 + bounce],
+    [87, 11], [79, 20 + bounce], [71, 11], [65, 21 + bounce],
+  ];
+  poly(g, hairPts, C.hair);
+  if (!outlineOnly) {
+    g.fillStyle(C.hairHi, 1);
+    g.fillEllipse(82, 6, 30, 8);
+    g.fillStyle(C.hairDark, 1);
+    g.fillRect(61, 17 + bounce, 45, 6);
+    // strand separations
+    inkLine(g, 74, 4, 70, 17 + bounce, 1);
+    inkLine(g, 88, 3, 86, 17 + bounce, 1);
+    inkLine(g, 100, 4, 100, 17 + bounce, 1);
+    inkPoly(g, hairPts, 3);
+  }
+}
 
 function drawCarlLimb(g, C, x1, y1, x2, y2, w, detail) {
   // Thick limb segment with rounded joints (upper arm / forearm / thigh).
@@ -158,20 +423,22 @@ function drawCarlLimb(g, C, x1, y1, x2, y2, w, detail) {
 function drawCarlFist(g, C, x, y, r, gauntlet) {
   if (gauntlet) {
     // Brass spiked fist + red wrist wrap (rear arm).
+    // Spikes are silhouette: drawn in the outline pass too (in INK there)
+    // so the halo covers the spike tips; only hi-light + ink ring are gated.
     g.fillStyle(C.wrap, 1);
     g.fillCircle(x, y, r + 1);
     g.fillStyle(C.brass, 1);
     g.fillCircle(x, y, r);
+    g.fillStyle(C.brass, 1);
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI * 2 * i) / 6 + 0.4;
+      const sx = x + Math.cos(a) * r;
+      const sy = y + Math.sin(a) * r;
+      g.fillTriangle(sx - 2, sy - 2, sx + 2, sy + 2, x + Math.cos(a) * (r + 6), y + Math.sin(a) * (r + 6));
+    }
     if (!gauntlet.quiet) {
       g.fillStyle(C.brassHi, 1);
       g.fillCircle(x - 2, y - 2, r * 0.45);
-      // spikes ring the outer edge
-      for (let i = 0; i < 6; i++) {
-        const a = (Math.PI * 2 * i) / 6 + 0.4;
-        const sx = x + Math.cos(a) * r;
-        const sy = y + Math.sin(a) * r;
-        g.fillTriangle(sx - 2, sy - 2, sx + 2, sy + 2, x + Math.cos(a) * (r + 6), y + Math.sin(a) * (r + 6));
-      }
       g.lineStyle(3, INK, 1);
       g.strokeCircle(x, y, r);
     }
@@ -189,188 +456,6 @@ function drawCarlFist(g, C, x, y, r, gauntlet) {
   }
 }
 
-function drawCarl(g, outlineOnly, pose) {
-  const C = comicPalette(outlineOnly);
-  const run = pose === 'run1' ? 1 : pose === 'run2' ? -1 : 0;
-
-  // ---- CAPE (behind everything, flows left; waves with stride) ----
-  const capeLift = pose === 'run1' ? -8 : pose === 'run2' ? -3 : 4;
-  const capePts = [
-    [46, 36], [20, 38 + capeLift], [6, 58 + capeLift], [10, 84 + capeLift],
-    [16, 78 + capeLift], [20, 90 + capeLift], [26, 82 + capeLift],
-    [32, 92 + capeLift], [38, 82 + capeLift], [44, 62], [48, 48],
-  ];
-  poly(g, capePts, C.cape);
-  if (!outlineOnly) {
-    poly(g, [[20, 39 + capeLift], [8, 58 + capeLift], [11, 80 + capeLift], [17, 77 + capeLift], [18, 50 + capeLift]], C.capeDark);
-    g.fillStyle(C.hairHi, 1);
-    g.fillRect(40, 37, 5, 14);
-    inkPoly(g, capePts, 3);
-    inkLine(g, 30, 44 + capeLift, 24, 76 + capeLift, 1);
-  }
-
-  // ---- REAR ARM = GAUNTLET (thrown back like the reference lunge) ----
-  // shoulder (46,48) -> elbow -> spiked fist.
-  const gElbow = pose === 'idle' ? [28, 62] : run === 1 ? [24, 56] : [28, 60];
-  const gFist = pose === 'idle' ? [24, 80] : run === 1 ? [8, 50] : [14, 56];
-  drawCarlLimb(g, C, 46, 48, gElbow[0], gElbow[1], 16, !outlineOnly);
-  drawCarlLimb(g, C, gElbow[0], gElbow[1], gFist[0], gFist[1], 13, false);
-  // red wrap at the wrist, then the brass
-  g.fillStyle(C.wrap, 1);
-  g.fillCircle(gFist[0] + 3, gFist[1] - 2, 7);
-  if (!outlineOnly) {
-    g.lineStyle(2, INK, 1);
-    g.strokeCircle(gFist[0] + 3, gFist[1] - 2, 7);
-  }
-  drawCarlFist(g, C, gFist[0], gFist[1], 12, outlineOnly ? { quiet: true } : true);
-
-  // ---- LEGS (stride phases; feet end at y≈126) ----
-  // Each leg: hip -> knee -> foot, then knee pad + bare foot.
-  const legs = pose === 'idle'
-    ? [{ hip: [50, 86], knee: [48, 104], foot: [48, 122] }, { hip: [66, 86], knee: [68, 104], foot: [68, 122] }]
-    : run === 1
-      ? [{ hip: [50, 86], knee: [32, 100], foot: [22, 118] }, { hip: [66, 86], knee: [80, 100], foot: [88, 120] }]
-      : [{ hip: [50, 86], knee: [38, 102], foot: [34, 121] }, { hip: [66, 86], knee: [72, 98], foot: [60, 122] }];
-  for (const leg of legs) {
-    const [hx, hy] = leg.hip;
-    const [kx, ky] = leg.knee;
-    const [fx, fy] = leg.foot;
-    drawCarlLimb(g, C, hx, hy, kx, ky, 17, !outlineOnly);
-    drawCarlLimb(g, C, kx, ky, fx, fy - 4, 13, false);
-    // spiked knee pad (brass, spikes forward) — sized for thick thighs
-    g.fillStyle(C.brass, 1);
-    g.fillRoundedRect(kx - 9, ky - 7, 19, 13, 4);
-    if (!outlineOnly) {
-      g.fillStyle(C.brassDark, 1);
-      g.fillRect(kx - 9, ky + 2, 19, 4);
-      g.fillStyle(C.brassHi, 1);
-      g.fillRect(kx - 7, ky - 6, 5, 3);
-      g.fillStyle(C.brass, 1);
-      g.fillTriangle(kx + 10, ky - 5, kx + 17, ky - 1, kx + 10, ky + 3);
-      g.fillTriangle(kx + 10, ky + 1, kx + 17, ky + 5, kx + 10, ky + 9);
-      g.lineStyle(2, INK, 1);
-      g.strokeRoundedRect(kx - 9, ky - 7, 19, 13, 4);
-    }
-    // bare foot: heel-to-toe ellipse + toe line, facing right
-    g.fillStyle(C.skin, 1);
-    g.fillEllipse(fx + 3, fy, 17, 8);
-    if (!outlineOnly) {
-      g.fillStyle(C.skinShadow, 1);
-      g.fillEllipse(fx + 3, fy + 2, 15, 4);
-      inkLine(g, fx + 7, fy - 1, fx + 11, fy - 1, 1);
-      inkLine(g, fx + 7, fy + 2, fx + 11, fy + 2, 1);
-      g.lineStyle(2, INK, 1);
-      g.strokeEllipse(fx + 3, fy, 17, 8);
-    }
-  }
-
-  // ---- BOXERS (white, red hearts, wider cut) ----
-  g.fillStyle(C.boxer, 1);
-  g.fillRoundedRect(40, 68, 38, 20, 4);
-  if (!outlineOnly) {
-    g.fillStyle(C.boxerShadow, 1);
-    g.fillRect(40, 83, 38, 5);
-    const hearts = [
-      [47, 73], [55, 73], [63, 73], [71, 73],
-      [51, 79], [59, 79], [67, 79],
-    ];
-    g.fillStyle(C.heart, 1);
-    for (const [hx, hy] of hearts) {
-      g.fillCircle(hx - 1.2, hy, 2);
-      g.fillCircle(hx + 1.2, hy, 2);
-      g.fillTriangle(hx - 2.8, hy + 1, hx + 2.8, hy + 1, hx, hy + 4.2);
-    }
-    inkLine(g, 40, 68, 78, 68, 2);
-    inkLine(g, 40, 68, 40, 88, 2);
-    inkLine(g, 78, 68, 78, 88, 2);
-  }
-
-  // ---- TORSO (heavy muscle: lats, pecs, 6-pack) ----
-  g.fillStyle(C.skin, 1);
-  g.fillRoundedRect(36, 38, 42, 34, 9);
-  if (!outlineOnly) {
-    g.fillStyle(C.skinShadow, 1);
-    g.fillRoundedRect(70, 40, 8, 30, 4); // front lat shadow
-    g.fillStyle(C.skinHi, 1);
-    g.fillEllipse(44, 48, 11, 17); // cel light upper-left
-    // pecs
-    inkLine(g, 42, 52, 56, 52, 3);
-    inkLine(g, 60, 51, 73, 53, 3);
-    // abs: 3 rows + center line
-    inkLine(g, 52, 60, 70, 60, 2);
-    inkLine(g, 52, 65, 70, 65, 2);
-    inkLine(g, 54, 70, 68, 70, 2);
-    inkLine(g, 61, 58, 61, 70, 1);
-    g.fillStyle(C.skinShadow, 1);
-    g.fillCircle(61, 74, 1.5); // navel
-    g.lineStyle(3, INK, 1);
-    g.strokeRoundedRect(36, 38, 42, 34, 9);
-  }
-
-  // ---- FRONT ARM (bare, pumps with stride) ----
-  const fSh = [70, 46];
-  const fEl = pose === 'idle' ? [74, 62] : run === 1 ? [84, 54] : [78, 62];
-  const fFi = pose === 'idle' ? [72, 72] : run === 1 ? [88, 62] : [68, 70];
-  drawCarlLimb(g, C, fSh[0], fSh[1], fEl[0], fEl[1], 15, !outlineOnly);
-  drawCarlLimb(g, C, fEl[0], fEl[1], fFi[0], fFi[1], 12, false);
-  drawCarlFist(g, C, fFi[0], fFi[1], 8, outlineOnly ? 'bare-quiet' : false);
-
-  // ---- NECK + TRAPS ----
-  g.fillStyle(C.skinShadow, 1);
-  g.fillRect(54, 30, 12, 10);
-  g.fillStyle(C.skin, 1);
-  poly(g, [[46, 42], [78, 42], [68, 30], [54, 30]], C.skin);
-  if (!outlineOnly) {
-    inkLine(g, 46, 42, 78, 42, 2);
-  }
-
-  // ---- HEAD (face + full BEARD jaw, centered over torso: x43-71) ----
-  g.fillStyle(C.skin, 1);
-  g.fillRoundedRect(43, 6, 28, 26, 6);
-  if (!outlineOnly) {
-    // beard: full lower-face mass (the @johnrubio jaw)
-    g.fillStyle(C.stubble, 1);
-    g.fillRoundedRect(43, 22, 28, 10, 4);
-    g.fillStyle(C.hairDark, 1);
-    for (let bx = 45; bx <= 67; bx += 4) {
-      g.fillRect(bx, 24, 2, 3);
-      g.fillRect(bx + 1, 28, 2, 2);
-    }
-    // intense eyes under heavy brows
-    g.fillStyle(C.eyeWhite, 1);
-    g.fillRect(49, 13, 7, 5);
-    g.fillRect(60, 13, 7, 5);
-    g.fillStyle(INK, 1);
-    g.fillRect(52, 14, 3, 4);
-    g.fillRect(63, 14, 3, 4);
-    inkLine(g, 47, 10, 56, 13, 3); // brow L, angry
-    inkLine(g, 73, 10, 64, 13, 3); // brow R, angry
-    inkLine(g, 53, 29, 65, 28, 2); // grim mouth under beard edge
-    inkLine(g, 56, 19, 57, 21, 1); // nose nick
-    // ear
-    g.fillStyle(C.skin, 1);
-    g.fillRect(69, 18, 5, 7);
-    inkLine(g, 69, 18, 69, 25, 2);
-    g.lineStyle(3, INK, 1);
-    g.strokeRoundedRect(43, 6, 28, 26, 6);
-  }
-
-  // ---- HAIR (short red crop, spiked fringe, bounce per stride) ----
-  const bounce = pose === 'idle' ? 0 : run === 1 ? -2 : 1;
-  const hairPts = [
-    [41, 14 + bounce], [39, 4 + bounce], [45, 0], [57, 0], [69, 1],
-    [74, 5 + bounce], [71, 12 + bounce], [67, 6], [63, 12 + bounce],
-    [58, 6], [53, 12 + bounce], [48, 6], [44, 13 + bounce],
-  ];
-  poly(g, hairPts, C.hair);
-  if (!outlineOnly) {
-    g.fillStyle(C.hairHi, 1);
-    g.fillEllipse(55, 3, 20, 5);
-    g.fillStyle(C.hairDark, 1);
-    g.fillRect(41, 10 + bounce, 30, 4);
-    inkPoly(g, hairPts, 2);
-  }
-}
 
 /* ------------------------------------------------------------------ */
 /* DONUT — 64x64 fluffy orange tabby Persian, facing right              */
@@ -580,11 +665,12 @@ export class SpriteFactory {
   static createCarl(scene, x, y) {
     SpriteFactory.generate(scene);
 
-    // 96x128 canvas ≈ old 96x120 on screen at SCALE 1.0 — triple the pixels.
+    // 144x192 canvas at SCALE 0.7 ≈ 100x134 on screen — triple the pixels
+    // of the old sprite at the same footprint: finer curves, no blocks.
     const outline = scene.add.sprite(0, 0, TEXTURE_KEYS.carlOutline.idle);
     const color = scene.add.sprite(0, 0, TEXTURE_KEYS.carlColor.idle);
 
-    const SCALE = 1.0;
+    const SCALE = 0.7;
     outline.setScale(SCALE * 1.08);
     color.setScale(SCALE * 1.0);
     outline.setOrigin(0.5, 1.0);

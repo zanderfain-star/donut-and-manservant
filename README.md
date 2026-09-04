@@ -1,4 +1,4 @@
-# Donut &amp; Manservant
+# Donut &amp; Manservant — v2.12
 
 A bold cartoon / comic-cover sidescroller inspired by *Dungeon Crawler Carl*,
 hosted at **https://donut.4bros.cc**.
@@ -7,64 +7,54 @@ hosted at **https://donut.4bros.cc**.
 > read the books: <https://mattdinniman.com/books/dungeon-crawler-carl/>.
 > Unofficial, made with love. Goddammit, Donut!
 
-You are Carl (red hair, brass gauntlet, heart boxers). Donut the crowned cat
-rides behind you — and fires eye-rockets from your shoulder. Mongo, Donut's
-baby raptor, trails the party: he snacks on fallen corpses (+10 NOM) and
-chews up rats that stray too close to mommy. Take the stairs down at the
-far right of Floor 1.
+You are Carl (red hair, brass gauntlet, heart boxers — hi-res 144×192 sprite).
+Donut the crowned cat rides behind you and fires Donut Rockets from your
+shoulder. Mongo, Donut's baby raptor, trails the party: he snacks on fallen
+corpses (+10 NOM), chews up rats that stray too close to mommy, and grows
+every zone (LV 1–12). From Floor 2 on, Carl tosses bombs with `U`.
 
 Built with Phaser 3 + Vite, vanilla JS. All sprites generated procedurally —
-no image assets.
+no image assets. Bottom-right stamp (`v2.12 • N FPS`, hand-measured) tells
+you exactly which build is live.
 
 ## Story
 
-The dungeon took the world. Crawler Carl (heart boxers, brass gauntlet)
-drops to **Floor 1: Descent** with his cat Donut (crowned, unimpressed,
-armed with eye-rockets). She supervises. He punches first.
+Seattle, 11:48 PM. Carl runs outside to get Donut out of the tree — and the
+whole city whomps straight into the ground behind them. WHAT THE HELL?!
+📢 RUN TO THE STAIRS NOW IF YOU WANT TO JOIN THE DUNGEON. Floor 0 is a
+burning collapse: fires hurt, debris falls harder the closer you get to the
+stairs. Then the dungeon: Floors 1–4 (DCC Books 1–3), ending in the Floor 5
+Safe Room + Desperado Club test ground (buff pedestals, straw Jeffs).
 
-## Levels (DCC Book 1 canon — zones are mob-identified, no throne room here)
+## Levels (zones are mob-identified, no throne room here)
 
-2 floors shipped. Walk onto the stairs (after the boss) and press SPACE to
-descend — score + Silver Box upgrades carry down, HP refills.
+Walk onto the stairs (after the boss) to descend — score + Silver Box
+upgrades carry down, HP refills.
+
+Floor 0 — SEATTLE 11:48 PM (prelevel, no baddies): letterboxed intro
+(~9s, SPACE skips), burning streets (1 HP/sec), collapse timer escalates
+1 chunk/3.6s → 3 chunks/0.9s near the stairs, landed chunks hurt. Grab Donut,
+RUN →.
 
 Floor 1 — 3 zones + borough boss in one run:
 
 | # | Zone | Stretch | Threat |
 |---|------|---------|--------|
-| 1 | ENTRY TUNNELS — Mind the Murder Dozers | 0–2000 | goblins + rats, base stats, warm grade |
-| 2 | THE GARBAGE — Something big lives in the trash | 2000–4200 | tinkers lob faster (+12% speed), violet grade, 2 pits |
-| 3 | THE GYM — Fitness. Weights. Gains. | 4200–6000 | faster everything, 4-HP trogs, red grade |
-| ★ | BALL OF SWINE — borough boss | ~5400–6010 | rolling flesh ball, 12 HP (max 2/hit), guards the stairs |
+| 1 | ENTRY TUNNELS — Mind the Murder Dozers | 0–2000 | goblins + rats |
+| 2 | THE GARBAGE — Something big lives in the trash | 2000–4200 | tinkers lob, violet grade |
+| 3 | THE GYM — Fitness. Weights. Gains. | 4200–6000 | faster everything, heavy trogs, red grade |
+| ★ | BARON SWINE — tuxedo boar bruiser | ~5400–6010 | 12 HP (max 2/hit), telegraphed lunges, flat arena |
 
-Mob elevation per zone: speed +12%/zone, tinker fuse −15%/zone, gym
-trogs grow a 4th HP. Mongo levels with the zones too (LV 1–3: size,
-chew speed 1.0s→0.5s, leash 380→540).
-
-Upgrades: 2 SILVER BOXES in the gym grant permanent loot — +1 max HP,
-+1 max mana, or +1 punch damage (caps 10 / 7 / 3; maxed Carl gets +250).
-
-Achievements (up to 4 on the clear panel): playstyle (Lover, Punch Drunk,
-Cat Artillery, Smoosh Supreme), progression (This Little Piggy, Sous Chef,
-Big Boy, Sightseer, Speedrunner, Box Gambler), survival/misc (Untouchable,
-Pit Enthusiast, Show-Off, Exterminator, Waste Not, Loot Snob, What's Mana,
-Participant).
-
-Checkpoints: GARBAGE GATE (x2100 → respawn 2280), GYM GATE (x4300 → respawn
-4480). Pit falls cost 1 HP and rescue to checkpoint — score/combo persist.
-The descent stairs sit under a red forcefield dome until the Swine dies.
-
-Floor 2 — same engine, meaner dungeon:
+Floor 2 — same engine, meaner dungeon + **BOMB TOSS UNLOCKED (`U`)**:
 
 | # | Zone | Stretch | Threat |
 |---|------|---------|--------|
 | 1 | THE CINDERS — Watch for scorch marks | 0–2000 | +36% speed packs |
-| 2 | THE LICHEN MAZE — Do not lick the walls | 2000–4200 | rapid tinkers, 4-HP trogs |
-| 3 | THE POUND — You hear distorted barking | 4200–6000 | +60% speed, 5-HP trogs |
-| ★ | RALPH — frenzied gerbil | ~5400–6010 | fast roller (95), 8 HP (max 2/hit) |
+| 2 | THE LICHEN MAZE — Do not lick the walls | 2000–4200 | rapid tinkers, heavy trogs |
+| 3 | THE POUND — You hear distorted barking | 4200–6000 | +60% speed bruisers |
+| ★ | RALPH — rearing gerbil bruiser | ~5400–6010 | fast (95), 8 HP (max 2/hit) |
 
-Mongo keeps leveling (LV 4–6: bigger, 0.4s→0.3s chews, 780 leash).
-
-Floor 3 — THE OVER CITY (Book 2: grey rubble, circus lights, crater mold):
+Floor 3 — THE OVER CITY (grey rubble, circus lights, crater mold):
 
 | # | Zone | Threat |
 |---|------|--------|
@@ -73,29 +63,55 @@ Floor 3 — THE OVER CITY (Book 2: grey rubble, circus lights, crater mold):
 | 3 | THE CRATER — Something skates down there | heavies + drek |
 | ★ | HEATHER — mold bear on skates | 10 HP (max 2/hit), fast for her size |
 
-New mob: DREK (knee-high demonic infant, fast, 1 HP). Mongo LV 7–9.
+New mob: DREK (knee-high demonic infant, fast, 1 HP).
 
-Floor 4 — THE IRON TANGLE (Book 3: the map IS the Nightmare Express):
+Floor 4 — THE IRON TANGLE (the map IS the Nightmare Express, ride inside):
 
 | # | Zone | Threat |
 |---|------|--------|
-| 1 | NIGHTMARE CARS — All aboard. No refunds. | drek + goblins on the roofs |
+| 1 | NIGHTMARE CARS — All aboard. No refunds. | drek + goblins in the cars |
 | 2 | TRANSFER MAZE — Mind the gap. Seriously. | tinkers, trogs, car-gap pits |
 | 3 | ABYSS EDGE — Last stop: everywhere | everything, faster |
 | ★ | GHOUL AMALGAM — festering mass | 14 HP (max 2/hit), slow |
 
-Train rules: steel roof floor, car gaps are pits, tunnel background streams
-past (480px/s) with station signs (STATION 112, RED LINE, MIND THE GAP,
-ABYSS 436). Mongo LV 10–12. Floor 4 clear = TO BE CONTINUED.
+Tunnel streams past with station signs. Floor 4 clear = TO BE CONTINUED.
+
+Floor 5 — SAFE ROOM + DESPERADO CLUB: no fighting (except Jeff). Buff
+pedestals (Swift Boots, Brass+2, Overdrive, Quake), respawning straw dummies,
+Bopca keeps the bar.
+
+Enemy behavior: patrollers hold a bounce beat (cooldown-gated hops),
+chase-hop up platforms after Carl, hop out when walled in. Bosses stalk on
+foot and telegraph lunges (crouch + amber glint). Platforms are tiled
+walkways (lowest top 540 — nothing to wedge under); boss arenas are flat.
+
+Mob elevation per zone/floor: speed up, tinkers lob faster, late trogs grow
+bonus HP. Mongo levels with the zones (size, chew 1.0s→0.2s, leash, guard
+panic) and hunts big prey (never bosses).
+
+Upgrades: SILVER BOXES grant permanent loot — +1 max HP, +1 max mana, or +1
+punch damage (caps 10 / 7 / 3; maxed Carl gets +250).
+
+Achievements (4 shuffled plaques per clear, random quips): playstyle
+(Punch Drunk, Cat Artillery, Smoosh Supreme, Slugger, Seismic, Rocket Man,
+Fire Support, Stormtrooper, Bombardier, Crowd Control, One-Man Riot),
+progression (This Little Piggy, Pop Goes the Gerbil, Bear Necessity Averted,
+Composted, Sous Chef, Big Boy, Apex Predator, Sightseer, Speedrunner,
+Tourist, Box Gambler, Starstruck, Rock Hound, Ham Enthusiast, High Roller),
+survival/misc (Untouchable, Flesh Wound, Damage Sponge, Pit/Cliff,
+Show-Off, Hungry and Hurt, Exterminator, Waste Not, Loot Snob,
+What's a Rocket, Participant).
+
+Checkpoints per floor; pit falls cost 1 HP and rescue to checkpoint —
+score/combo persist. Stairs sit under a forcefield dome until the boss dies.
 
 ## Goal
 
-Cross all 3 zones alive and walk onto the **DESCENT STAIRS** at x≈6040 —
-Carl auto-walks to the stair mouth, Donut rides his shoulder, and you fade
-down to Floor 2 (clear panel, score kept). Kills + stars build score (combo
-multiplier ×4s window). Win bonus: 500 + 25×HP. Dying (HP 0 or abyss with
-0 HP left) shows the death panel — `R` retries from spawn, `M`/`ESC` back
-to the cover.
+Cross every zone alive and walk onto the **DESCENT STAIRS** — Carl
+auto-walks to the stair mouth, Donut rides his shoulder, and you fade down
+(clear panel, score kept). Kills + stars build score (combo multiplier, 4s
+window). Win bonus: 500 + 25×HP. Dying shows the death panel — `R` retries
+from spawn, `M`/`ESC` back to the cover.
 
 ## Play locally
 
@@ -112,18 +128,20 @@ npm run dev
 |-----|--------|
 | `A` / `D` | move left / right |
 | `W` / `SPACE` / `↑` | jump |
-| `J` | punch (short-range melee) |
+| `J` | punch (short-range melee + forward lunge) |
 | `K` | stomp (mid-air — slam down, one-shots enemies; landing on heads works too) |
-| `L` | magic missile (Donut jumps to your shoulder and fires — ranged) |
+| `L` | DONUT ROCKET (Donut jumps to your shoulder and fires — needs CRYSTAL fuel) |
+| `U` | bomb toss (Floor 2+ — arcing fuse bomb, AoE 2 dmg) |
 | `R` | restart floor (on win/death screens, or anytime in the HUD footer) |
 | `M` | back to main menu (comic cover) |
 | `ESC` | back to main menu (from win/death screens) |
 
 Menu: `SPACE` / `ENTER` / click — DESCEND!
 
-HUD: hearts (`♥` = health, max 8), mana crystals (`◆` = Donut magic),
+HUD: hearts (`♥` = health, max 8), rocket fuel (`◆` = crystal charges),
 score + combo multiplier, zone banner, descent progress % bar with
-checkpoint tick, magic cooldown, toast banners for zones/pickups.
+checkpoint tick, rocket cooldown, toast banners for zones/pickups, release
+stamp + live FPS bottom-right.
 
 ## Build & deploy (GitHub Pages → donut.4bros.cc)
 
@@ -164,8 +182,8 @@ Full DNS + repo setup walkthrough: see `DEPLOY.md`.
 - `src/scenes/BootScene.js` — procedural texture generation, scene handoff
 - `src/scenes/MenuScene.js` — comic-cover title screen (starburst, previews, how-to-play)
 - `src/scenes/GameScene.js` — level, player physics, enemies, combat (gameplay owner)
-- `src/scenes/UIScene.js` — parallel comic HUD: hearts/mana/score/combo/zone/progress/cooldown/toasts, win-death overlays
-- `src/entities/SpriteFactory.js` — cel-shaded Carl + Donut with outline trick
+- `src/scenes/UIScene.js` — parallel comic HUD: hearts/fuel/score/combo/zone/progress/cooldown/toasts/version+FPS, win-death overlays
+- `src/entities/SpriteFactory.js` — cel-shaded Carl (144×192) + Donut with outline trick
 
 ## Hosting
 
