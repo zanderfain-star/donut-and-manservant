@@ -740,63 +740,98 @@ export class BootScene extends Phaser.Scene {
       g.strokeCircle(60, 28, 19);
     });
 
-    // PRELEVEL — Seattle skyline at the end of the world. 1600x320:
-    // dark towers, the Needle, lit windows, fire glow behind the burn.
+    // PRELEVEL — Seattle AFTER the end: nothing left standing. 1600x320 of
+    // rubble mounds, snapped slabs, the Needle's broken stump, smoke + fire.
+    // (The last towers fall in the intro — see GameScene.buildPrelevel.)
     this.stamp(['pre_skyline'], 1600, 320, (g) => {
-      // fire glow beds (behind buildings)
-      for (const [gx, gw] of [[180, 220], [700, 260], [1250, 200]]) {
+      // fire glow beds
+      for (const [gx, gw] of [[180, 260], [700, 300], [1250, 260]]) {
         g.fillStyle(0xff5a20, 0.35);
         g.fillEllipse(gx + gw / 2, 320, gw, 150);
         g.fillStyle(0xffc93d, 0.3);
         g.fillEllipse(gx + gw / 2, 320, gw * 0.6, 90);
       }
-      // tower blocks (deterministic pseudo-random heights)
+      // rubble mounds (deterministic)
       let seed = 7;
       const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-      let x = 0;
+      let x = -40;
       while (x < 1600) {
-        const w = 60 + rnd() * 110;
-        const h = 90 + rnd() * 150;
-        g.fillStyle(0x0c0e1a, 1);
-        g.fillRect(x, 320 - h, w, h);
-        // antenna on some
-        if (rnd() > 0.6) {
-          g.fillStyle(0x0c0e1a, 1);
-          g.fillRect(x + w / 2 - 2, 320 - h - 26, 4, 26);
-          if (rnd() > 0.5) { g.fillStyle(0xff3d3d, 1); g.fillCircle(x + w / 2, 320 - h - 28, 3); }
+        const w = 120 + rnd() * 160;
+        const h = 40 + rnd() * 70;
+        g.fillStyle(0x14141e, 1);
+        g.fillEllipse(x + w / 2, 320, w, h * 2);
+        g.fillStyle(0x23232e, 1);
+        g.fillEllipse(x + w / 2 - 10, 320 - h * 0.3, w * 0.6, h);
+        // rebar + broken concrete chunks sticking out
+        g.lineStyle(3, 0x3a3a4a, 1);
+        for (let r = 0; r < 3; r++) {
+          const rx = x + 20 + rnd() * (w - 40);
+          const ry = 320 - h * (0.4 + rnd() * 0.5);
+          g.lineBetween(rx, ry, rx + (rnd() - 0.5) * 40, ry - 14 - rnd() * 20);
         }
-        // lit windows
-        for (let wy = 320 - h + 12; wy < 308; wy += 16) {
-          for (let wx = x + 8; wx < x + w - 8; wx += 14) {
-            if (rnd() > 0.72) {
-              g.fillStyle(rnd() > 0.8 ? 0xfff2b0 : 0xff9a40, 1);
-              g.fillRect(wx, wy, 6, 8);
-            }
-          }
+        g.fillStyle(0x2e2e3a, 1);
+        for (let c = 0; c < 4; c++) {
+          g.fillRect(x + rnd() * w, 318 - rnd() * h, 8 + rnd() * 14, 5 + rnd() * 8);
         }
-        x += w + 4 + rnd() * 20;
+        x += w * 0.7;
       }
-      // Space Needle: tripod legs + saucer + spire
-      const nx = 1050;
-      g.lineStyle(8, 0x0c0e1a, 1);
-      g.lineBetween(nx - 26, 320, nx - 8, 120);
-      g.lineBetween(nx + 26, 320, nx + 8, 120);
-      g.lineBetween(nx, 320, nx, 110);
+      // snapped slabs leaning out of the piles (nothing vertical survives)
+      for (const [sx, tilt, sw, sh] of [[300, 0.5, 26, 110], [820, -0.45, 30, 130], [1330, 0.6, 24, 100]]) {
+        g.save();
+        g.translateCanvas(sx, 310);
+        g.rotateCanvas(tilt);
+        g.fillStyle(0x0c0e1a, 1);
+        g.fillRect(-sw / 2, -sh, sw, sh);
+        // dead windows (dark — the power is out)
+        g.fillStyle(0x1a2030, 1);
+        for (let wy = -sh + 12; wy < -8; wy += 16) {
+          for (let wx = -sw / 2 + 5; wx < sw / 2 - 5; wx += 10) g.fillRect(wx, wy, 5, 8);
+        }
+        g.restore();
+      }
+      // Space Needle: snapped stump, leaning hard, saucer half-buried
+      g.save();
+      g.translateCanvas(1050, 320);
+      g.rotateCanvas(-0.35);
       g.fillStyle(0x0c0e1a, 1);
-      g.fillEllipse(nx, 108, 120, 26);
+      g.fillRect(-10, -90, 20, 90);
       g.fillStyle(0x1a2038, 1);
-      g.fillEllipse(nx, 104, 104, 18);
-      g.fillStyle(0xffe9a0, 1);
-      for (let wx = nx - 44; wx <= nx + 44; wx += 12) g.fillRect(wx, 100, 6, 6);
+      g.fillEllipse(0, -92, 70, 16);
+      g.restore();
       g.fillStyle(0x0c0e1a, 1);
-      g.fillRect(nx - 2, 40, 4, 60);
-      g.fillStyle(0xff3d3d, 1);
-      g.fillCircle(nx, 38, 4);
+      g.fillEllipse(1150, 312, 110, 24); // fallen saucer ring in the rubble
       // smoke columns
       g.fillStyle(0x1a1a24, 0.7);
-      for (const [sx, sw] of [[250, 60], [760, 80], [1300, 55]]) {
+      for (const [sx, sw] of [[250, 70], [760, 90], [1300, 65]]) {
         g.fillEllipse(sx, 120, sw, 200);
       }
+    });
+
+    // The last standing tower (intro only): lit windows, antenna. 120x280.
+    // Three of these topple in the Floor 0 opening — then nothing stands.
+    this.stamp(['pre_tower'], 120, 280, (g) => {
+      g.fillStyle(0x0c0e1a, 1);
+      g.fillRect(10, 20, 100, 260);
+      g.fillStyle(0x141828, 1);
+      g.fillRect(10, 20, 100, 14);
+      // lit windows (the lights are still on — for seconds)
+      let seed = 21;
+      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+      for (let wy = 44; wy < 268; wy += 18) {
+        for (let wx = 18; wx < 100; wx += 16) {
+          if (rnd() > 0.45) {
+            g.fillStyle(rnd() > 0.7 ? 0xfff2b0 : 0xff9a40, 1);
+            g.fillRect(wx, wy, 8, 10);
+          }
+        }
+      }
+      // antenna
+      g.fillStyle(0x0c0e1a, 1);
+      g.fillRect(57, 0, 6, 22);
+      g.fillStyle(0xff3d3d, 1);
+      g.fillCircle(60, 4, 3);
+      g.lineStyle(4, INK, 1);
+      g.strokeRect(10, 20, 100, 260);
     });
 
     // Prelevel tree Donut waits in: trunk + pine tiers + perch branch. 160x220.

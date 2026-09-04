@@ -74,6 +74,7 @@ const FLOORS = {
     ],
     boss: null,
     tips: [
+      [700, 'FIRE HURTS — keep moving!'],
       [1200, 'A/D move • W/SPACE jump'],
       [4500, "Donut's in the tree — go get her!"],
       [8000, 'The world is ending. RUN →'],
@@ -1202,7 +1203,9 @@ export class GameScene extends Phaser.Scene {
     // Donut's tree at the start.
     this.add.image(260, FLOOR_Y - 110, 'pre_tree').setDepth(4);
     // Burning blocks: glow beds + licking flames + rising embers.
-    for (const fx of [900, 1900, 2700]) {
+    // The flames HURT — touching one costs 1 HP (see updateCollapse).
+    this.preFires = [900, 1900, 2700];
+    for (const fx of this.preFires) {
       const glow = this.add.circle(fx, FLOOR_Y - 8, 60, 0xff5a20, 0.3).setDepth(3);
       this.tweens.add({
         targets: glow, alpha: { from: 0.2, to: 0.42 }, scale: { from: 1, to: 1.15 },
@@ -1224,27 +1227,112 @@ export class GameScene extends Phaser.Scene {
         });
       }
     }
-    // The collapse: periodic rumble + debris chunk crashing down ahead.
-    this.preRumble = this.time.addEvent({
-      delay: 3800, loop: true,
-      callback: () => {
-        if (this.dead || this.won || this.floor !== 0) return;
-        this.cameras.main.shake(140, 0.004);
-        const dx = Phaser.Math.Clamp(this.player.x + 420 + Math.random() * 200, 100, this.worldW - 100);
-        const chunk = this.add.image(dx, -40, 'debris_wall').setScale(0.5).setDepth(4).setAlpha(0.95);
+    // The collapse: escalation timer (see updateCollapse). The closer Carl
+    // gets to the stairs, the faster the city comes down: volleys go from
+    // one chunk every ~3.6s to three chunks every ~0.9s. Landed chunks hurt.
+    this._collapseAcc = 2600; // first volley lands shortly after boot
+    this._collapseFlags = {};
+    // OPENING: the last towers come down. Carl watches, swears, gets told
+    // where to go. No input lock — it happens ahead of spawn, run anytime.
+    this.preIntro();
+  }
+
+  // Floor 0 opening: three last-standing towers topple into the rubble,
+  // Carl reacts, and the dungeon voice gives the order.
+  preIntro() {
+    const towers = [
+      { x: 950, delay: 700, dir: 1 },
+      { x: 1550, delay: 1500, dir: -1 },
+      { x: 2250, delay: 2300, dir: 1 },
+    ];
+    for (const t of towers) {
+      const tw = this.add.image(t.x, FLOOR_Y, 'pre_tower').setOrigin(0.5, 1).setDepth(2);
+      this.time.delayedCall(t.delay, () => {
+        if (this.floor !== 0 || this.dead) { tw.destroy(); return; }
+        this.cameras.main.shake(220, 0.006);
         this.tweens.add({
-          targets: chunk, y: FLOOR_Y - 24, duration: 650, ease: 'Cubic.easeIn',
+          targets: tw, angle: t.dir * 82, y: FLOOR_Y + 60, duration: 900, ease: 'Cubic.easeIn',
           onComplete: () => {
-            this.cameras.main.shake(90, 0.003);
-            const dust = this.add.circle(dx, FLOOR_Y - 10, 8, 0x8a7057, 0.7).setDepth(4);
+            if (this.floor !== 0) { tw.destroy(); return; }
+            this.cameras.main.shake(160, 0.005);
+            const dust = this.add.circle(t.x + t.dir * 90, FLOOR_Y - 10, 10, 0x8a7057, 0.8).setDepth(4);
             this.tweens.add({
-              targets: dust, scale: 3, alpha: 0, duration: 400,
-              onComplete: () => { dust.destroy(); chunk.destroy(); },
+              targets: dust, scale: 5, alpha: 0, duration: 700,
+              onComplete: () => { dust.destroy(); tw.destroy(); },
             });
           },
         });
-      },
+      });
+    }
+    // Carl, watching the skyline go: "WHAT THE HELL?!"
+    this.time.delayedCall(3100, () => {
+      if (this.floor !== 0 || this.dead || this.won) return;
+      this.floatText(this.player.x, this.player.y - 110, 'WHAT THE HELL?!', '#ffffff');
     });
+    // The dungeon voice answers: run to the stairs, join the dungeon.
+    this.time.delayedCall(4300, () => {
+      if (this.floor !== 0 || this.dead || this.won) return;
+      this.cameras.main.shake(120, 0.003);
+      this.toast('📢 RUN TO THE STAIRS NOW IF YOU WANT TO JOIN THE DUNGEON', '#ffc93d');
+    });
+  }
+
+  // Floor 0 per-frame: fire damage + collapse escalation timer.
+  updateCollapse(delta) {
+    if (this.dead || this.won || this.descending || this.floor !== 0) return;
+    const px = this.player.x;
+    const feetY = this.player.y + 35;
+    // Burning streets hurt.
+    for (const fx of (this.preFires || [])) {
+      if (Math.abs(px - fx) < 55 && feetY > FLOOR_Y - 70) {
+        this.hurtPlayer(1, fx);
+        break;
+      }
+    }
+    // Collapse progress 0→1 from spawn to stairs.
+    const prog = Phaser.Math.Clamp((px - SPAWN_X) / Math.max(1, this.endX - SPAWN_X), 0, 1);
+    if (prog > 0.5 && !this._collapseFlags.half) {
+      this._collapseFlags.half = true;
+      this.toast('HALF THE CITY IS GONE — RUN!', '#ff5a20');
+    }
+    if (prog > 0.85 && !this._collapseFlags.end) {
+      this._collapseFlags.end = true;
+      this.toast("IT'S ALL COMING DOWN!", '#ff3d3d');
+    }
+    // Escalating volleys: interval 3600ms → 900ms, chunks 1 → 3.
+    this._collapseAcc += delta;
+    const interval = 3600 - 2700 * prog;
+    while (this._collapseAcc >= interval) {
+      this._collapseAcc -= interval;
+      this.collapseVolley(1 + Math.floor(prog * 2.01));
+    }
+  }
+
+  collapseVolley(n) {
+    if (this.dead || this.won || this.floor !== 0) return;
+    this.cameras.main.shake(140, 0.004);
+    for (let i = 0; i < n; i++) {
+      const dx = Phaser.Math.Clamp(
+        this.player.x + 220 + Math.random() * 320, 100, this.worldW - 100,
+      );
+      const chunk = this.add.image(dx, -40 - i * 60, 'debris_wall').setScale(0.5).setDepth(4).setAlpha(0.95);
+      this.tweens.add({
+        targets: chunk, y: FLOOR_Y - 24, duration: 650, ease: 'Cubic.easeIn',
+        onComplete: () => {
+          if (this.floor !== 0) { chunk.destroy(); return; }
+          this.cameras.main.shake(90, 0.003);
+          // Landing on Carl's head costs 1 HP.
+          if (!this.dead && !this.won && Math.abs(this.player.x - dx) < 70) {
+            this.hurtPlayer(1, dx);
+          }
+          const dust = this.add.circle(dx, FLOOR_Y - 10, 8, 0x8a7057, 0.7).setDepth(4);
+          this.tweens.add({
+            targets: dust, scale: 3, alpha: 0, duration: 400,
+            onComplete: () => { dust.destroy(); chunk.destroy(); },
+          });
+        },
+      });
+    }
   }
 
   /* ==========================================================
@@ -1976,6 +2064,8 @@ export class GameScene extends Phaser.Scene {
       this.syncVisuals(dt);
       return;
     }
+    // Seattle burns in real time: fires bite, the collapse escalates.
+    if (this.floor === 0) this.updateCollapse(delta);
     const onGround = body.blocked.down || body.touching.down;
 
     if (onGround) this.lastGroundedAt = time;
