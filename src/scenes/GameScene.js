@@ -1237,44 +1237,76 @@ export class GameScene extends Phaser.Scene {
     this.preIntro();
   }
 
-  // Floor 0 opening: three last-standing towers topple into the rubble,
-  // Carl reacts, and the dungeon voice gives the order.
+  // Floor 0 opening beat: Carl goes outside to get Donut out of the tree
+  // (auto-walk, input locked — SPACE skips). The moment she jumps down,
+  // EVERYTHING whomps into the ground at once. Then: WHAT THE HELL.
   preIntro() {
-    const towers = [
-      { x: 950, delay: 700, dir: 1 },
-      { x: 1550, delay: 1500, dir: -1 },
-      { x: 2250, delay: 2300, dir: 1 },
-    ];
-    for (const t of towers) {
-      const tw = this.add.image(t.x, FLOOR_Y, 'pre_tower').setOrigin(0.5, 1).setDepth(2);
-      this.time.delayedCall(t.delay, () => {
-        if (this.floor !== 0 || this.dead) { tw.destroy(); return; }
-        this.cameras.main.shake(220, 0.006);
-        this.tweens.add({
-          targets: tw, angle: t.dir * 82, y: FLOOR_Y + 60, duration: 900, ease: 'Cubic.easeIn',
-          onComplete: () => {
-            if (this.floor !== 0) { tw.destroy(); return; }
-            this.cameras.main.shake(160, 0.005);
-            const dust = this.add.circle(t.x + t.dir * 90, FLOOR_Y - 10, 10, 0x8a7057, 0.8).setDepth(4);
-            this.tweens.add({
-              targets: dust, scale: 5, alpha: 0, duration: 700,
-              onComplete: () => { dust.destroy(); tw.destroy(); },
-            });
-          },
-        });
+    this._introLock = true;
+    this._introWhomped = false;
+    this._introStart = this.time.now;
+    this._introTowers = [];
+    for (const tx of [950, 1550, 2250]) {
+      this._introTowers.push(
+        this.add.image(tx, FLOOR_Y, 'pre_tower').setOrigin(0.5, 1).setDepth(2),
+      );
+    }
+    // Failsafe: never hold the lock more than 8s, whomp by 5s no matter what.
+    this.time.delayedCall(5000, () => {
+      if (this.floor === 0 && this._introLock && !this._introWhomped) this.introWhomp();
+    });
+    this.time.delayedCall(8000, () => {
+      if (this._introLock) this.finishIntro(true);
+    });
+  }
+
+  // Called from update(): once Donut jumps down, drop the city.
+  introCheck() {
+    if (!this._introLock || this._introWhomped || this.floor !== 0) return;
+    if (!this.donutWaiting && this.player.x > 380) this.introWhomp();
+  }
+
+  // WHOMP: all towers slam into the ground simultaneously.
+  introWhomp() {
+    if (this._introWhomped || this.floor !== 0) return;
+    this._introWhomped = true;
+    this.cameras.main.shake(350, 0.01);
+    for (const tw of (this._introTowers || [])) {
+      const dir = tw.x > 1600 ? -1 : 1;
+      this.tweens.add({
+        targets: tw, angle: dir * 84, y: FLOOR_Y + 70, duration: 550, ease: 'Cubic.easeIn',
+        onComplete: () => {
+          if (this.floor !== 0) { tw.destroy(); return; }
+          this.cameras.main.shake(160, 0.005);
+          const dust = this.add.circle(tw.x + dir * 90, FLOOR_Y - 10, 10, 0x8a7057, 0.8).setDepth(4);
+          this.tweens.add({
+            targets: dust, scale: 5, alpha: 0, duration: 700,
+            onComplete: () => { dust.destroy(); tw.destroy(); },
+          });
+        },
       });
     }
-    // Carl, watching the skyline go: "WHAT THE HELL?!"
-    this.time.delayedCall(3100, () => {
+    // Carl, watching the city go: "WHAT THE HELL?!"
+    this.time.delayedCall(800, () => {
       if (this.floor !== 0 || this.dead || this.won) return;
       this.floatText(this.player.x, this.player.y - 110, 'WHAT THE HELL?!', '#ffffff');
     });
     // The dungeon voice answers: run to the stairs, join the dungeon.
-    this.time.delayedCall(4300, () => {
+    this.time.delayedCall(2000, () => {
       if (this.floor !== 0 || this.dead || this.won) return;
       this.cameras.main.shake(120, 0.003);
       this.toast('📢 RUN TO THE STAIRS NOW IF YOU WANT TO JOIN THE DUNGEON', '#ffc93d');
     });
+    this.time.delayedCall(2400, () => this.finishIntro(false));
+  }
+
+  finishIntro(skipped) {
+    if (!this._introLock) return;
+    this._introLock = false;
+    if (skipped && !this._introWhomped) {
+      // Skip: drop the city instantly, say the lines, hand over control.
+      this.introWhomp();
+      this._introLock = false;
+    }
   }
 
   // Floor 0 per-frame: fire damage + collapse escalation timer.
@@ -2072,7 +2104,20 @@ export class GameScene extends Phaser.Scene {
 
     // ----- Horizontal movement -----
     const spd = this.buffs.speed;
-    if (this.keys.left.isDown) {
+    if (this._introLock) {
+      // Opening beat: Carl walks outside to the tree on his own.
+      // SPACE skips the intro.
+      if (this.player.x < 380) {
+        body.setAccelerationX(PLAYER.accel * spd);
+        this.carlVis.setFacing(1);
+      } else {
+        body.setAccelerationX(0);
+      }
+      if (Phaser.Input.Keyboard.JustDown(this.keys.jump) ||
+        Phaser.Input.Keyboard.JustDown(this.keys.jumpAlt)) {
+        this.finishIntro(true);
+      }
+    } else if (this.keys.left.isDown) {
       body.setAccelerationX(-PLAYER.accel * spd);
       this.carlVis.setFacing(-1);
     } else if (this.keys.right.isDown) {
@@ -2092,7 +2137,7 @@ export class GameScene extends Phaser.Scene {
       Phaser.Input.Keyboard.JustDown(this.keys.jump) ||
       Phaser.Input.Keyboard.JustDown(this.keys.jumpAlt) ||
       Phaser.Input.Keyboard.JustDown(this.keys.jumpArrow);
-    if (jumpDown) this.lastJumpAt = time;
+    if (jumpDown && !this._introLock) this.lastJumpAt = time;
     const buffered = time - this.lastJumpAt < PLAYER.bufferMs;
     const grounded = onGround || time - this.lastGroundedAt < PLAYER.coyoteMs;
     if (buffered && grounded) {
@@ -2109,13 +2154,13 @@ export class GameScene extends Phaser.Scene {
     if (jumpUp && body.velocity.y < -260) body.setVelocityY(-260);
 
     // ----- Punch (220ms cd + forward lunge) -----
-    if (Phaser.Input.Keyboard.JustDown(this.keys.punch) && time - this.lastPunchAt > PLAYER.punchCd) {
+    if (!this._introLock && Phaser.Input.Keyboard.JustDown(this.keys.punch) && time - this.lastPunchAt > PLAYER.punchCd) {
       this.lastPunchAt = time;
       this.doPunch(onGround);
     }
 
     // ----- Stomp slam: giant boot drops with Carl -----
-    if (Phaser.Input.Keyboard.JustDown(this.keys.stomp) && !onGround && body.velocity.y > -50) {
+    if (!this._introLock && Phaser.Input.Keyboard.JustDown(this.keys.stomp) && !onGround && body.velocity.y > -50) {
       body.setVelocityY(780);
       this.stomping = true;
       this._stompWasAir = true;
@@ -2140,7 +2185,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ----- Magic (350ms cd, 1 mana, recoil, Donut shoulder ride) -----
-    if (Phaser.Input.Keyboard.JustDown(this.keys.magic) && time - this.lastMagicAt > PLAYER.magicCd) {
+    if (!this._introLock && Phaser.Input.Keyboard.JustDown(this.keys.magic) && time - this.lastMagicAt > PLAYER.magicCd) {
       this.doMagicMissile(time);
     }
 
@@ -2191,6 +2236,8 @@ export class GameScene extends Phaser.Scene {
         targets: this.donutVis, y: this.donutVis.y - 60, duration: 320, yoyo: true,
       });
     }
+    // Opening beat: Donut's down → WHOMP the city.
+    if (this.floor === 0) this.introCheck();
     this.updateZoneAndCheckpoints();
     this.syncVisuals(dt);
 
