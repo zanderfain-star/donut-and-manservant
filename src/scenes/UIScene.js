@@ -294,11 +294,15 @@ export class UIScene extends Phaser.Scene {
     const g = this.gameScene;
     if (!this._uiReady || !g || !g.player) return;
 
-    // ----- FPS next to the release stamp (refreshed 2x/sec) -----
-    this._fpsAcc = (this._fpsAcc || 0) + (g.game.loop.delta || 16.7);
-    if (this._fpsAcc > 500) {
-      this._fpsAcc = 0;
-      const fps = Math.round(g.game.loop.actualFps || 0);
+    // ----- FPS next to the release stamp, hand-measured (frames per
+    // wall-clock second, refreshed 2x/sec) — not Phaser's smoothed estimate.
+    this._fpsFrames = (this._fpsFrames || 0) + 1;
+    const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!this._fpsMark) this._fpsMark = nowMs;
+    if (nowMs - this._fpsMark > 500) {
+      const fps = Math.round((this._fpsFrames * 1000) / Math.max(1, nowMs - this._fpsMark));
+      this._fpsFrames = 0;
+      this._fpsMark = nowMs;
       if (this.versionText) this.versionText.setText(`v2.11 • ${fps} FPS`);
       this.versionText.setColor(fps >= 50 ? '#8a7a5a' : fps >= 30 ? '#ffaa3d' : '#ff3d3d');
     }
