@@ -147,7 +147,7 @@ export class UIScene extends Phaser.Scene {
       fontFamily: '"Courier New", monospace',
       fontSize: '12px',
       fontStyle: 'bold',
-      color: '#8a7a5a',
+      color: '#6effff',
     })).setOrigin(1, 1).setDepth(500);
 
     // Global retry/menu keys — valid any time, not just on overlays
@@ -304,7 +304,7 @@ export class UIScene extends Phaser.Scene {
       this._fpsFrames = 0;
       this._fpsMark = nowMs;
       if (this.versionText) this.versionText.setText(`v2.11 • ${fps} FPS`);
-      this.versionText.setColor(fps >= 50 ? '#8a7a5a' : fps >= 30 ? '#ffaa3d' : '#ff3d3d');
+      this.versionText.setColor(fps >= 50 ? '#6effff' : fps >= 30 ? '#ffe93d' : '#ff3d3d');
     }
 
     // ----- HP hearts — THE BUG FIX -----
