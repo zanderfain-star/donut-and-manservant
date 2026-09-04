@@ -232,7 +232,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Objective + loot legend inside panel
-    this.add.text(panelX, panelY + panelH / 2 - 32, 'GOAL: TUNNELS → GARBAGE → GYM, beat the BALL OF SWINE, STAIRS DOWN!', {
+    this.add.text(panelX, panelY + panelH / 2 - 32, 'GOAL: TUNNELS → GARBAGE → GYM, beat BARON SWINE, STAIRS DOWN!', {
       fontFamily: '"Courier New", monospace',
       fontSize: '12px',
       fontStyle: 'bold',

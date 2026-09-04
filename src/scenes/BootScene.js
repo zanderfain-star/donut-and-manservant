@@ -532,60 +532,116 @@ export class BootScene extends Phaser.Scene {
       g.strokeCircle(36, 18, 13);
     });
 
-    // BALL OF SWINE: Floor 1 borough boss. Rolling pink flesh ball
-    // studded with eyes + tusks, tuxedo + red sequin scraps. 120x120,
-    // feet at the frame bottom like every other mob.
+    // BARON SWINE: Floor 1 borough boss. Tuxedo BOAR BRUISER on two legs —
+    // trotters, snout, tusks, bow tie. Stands 120x120, feet at frame bottom.
     this.stamp(['boss_swine'], 120, 120, (g) => {
-      // mass
-      g.fillStyle(0xff8aa0, 1);
-      g.fillCircle(60, 60, 52);
-      g.fillStyle(0xffb0c0, 1);
-      g.fillEllipse(44, 44, 44, 30);
-      g.fillStyle(0xd84a6a, 1);
-      g.fillEllipse(76, 80, 40, 26);
-      // rolls + folds
-      g.lineStyle(3, 0xb03050, 1);
-      g.beginPath(); g.arc(60, 60, 40, Math.PI * 0.1, Math.PI * 0.7, false); g.strokePath();
-      g.beginPath(); g.arc(60, 60, 30, Math.PI * 1.1, Math.PI * 1.7, false); g.strokePath();
-      // eyes (5, mismatched, bloodshot)
-      const eyes = [[38, 44], [58, 36], [78, 46], [48, 66], [72, 68]];
-      for (const [ex, ey] of eyes) {
-        g.fillStyle(0xffffff, 1);
-        g.fillCircle(ex, ey, 7);
-        g.fillStyle(INK, 1);
-        g.fillCircle(ex + 1, ey + 1, 3);
-        g.fillStyle(0xff3d3d, 1);
-        g.lineBetween(ex - 6, ey - 4, ex - 2, ey);
-      }
-      // tusks bursting out
-      g.fillStyle(PAL.teeth, 1);
-      for (const [tx, ty, dx, dy] of [[20, 70, -12, 6], [100, 70, 12, 6], [60, 108, 0, 12], [30, 30, -9, -9], [90, 30, 9, -9]]) {
-        g.fillTriangle(tx - 5, ty, tx + 5, ty, tx + dx, ty + dy);
-      }
-      g.lineStyle(2, INK, 1);
-      for (const [tx, ty, dx, dy] of [[20, 70, -12, 6], [100, 70, 12, 6], [60, 108, 0, 12]]) {
-        g.lineBetween(tx - 5, ty, tx + dx, ty + dy);
-        g.lineBetween(tx + 5, ty, tx + dx, ty + dy);
-      }
-      // tuxedo scraps + red sequin
-      g.fillStyle(0x1a1a22, 1);
-      g.fillTriangle(60, 8, 48, 26, 72, 26);
+      const flesh = 0xf0a0a8;
+      const dark = 0xc06a7a;
+      // hooves
+      g.fillStyle(0x3a2028, 1);
+      g.fillRoundedRect(36, 104, 18, 10, 3);
+      g.fillRoundedRect(66, 104, 18, 10, 3);
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(36, 104, 18, 10, 3);
+      g.strokeRoundedRect(66, 104, 18, 10, 3);
+      // thick legs
+      g.fillStyle(flesh, 1);
+      g.fillRect(38, 84, 14, 22);
+      g.fillRect(68, 84, 14, 22);
+      g.fillStyle(dark, 1);
+      g.fillRect(38, 96, 14, 10);
+      g.fillRect(68, 96, 14, 10);
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(38, 84, 38, 104);
+      g.lineBetween(82, 84, 82, 104);
+      // burly arms + trotter fists with white cuffs
+      g.fillStyle(flesh, 1);
+      g.fillRoundedRect(8, 52, 18, 32, 8);
+      g.fillRoundedRect(94, 52, 18, 32, 8);
       g.fillStyle(0xffffff, 1);
-      g.fillTriangle(60, 12, 55, 24, 65, 24);
+      g.fillRect(10, 52, 14, 7);
+      g.fillRect(96, 52, 14, 7);
+      g.fillStyle(flesh, 1);
+      g.fillCircle(17, 88, 10);
+      g.fillCircle(103, 88, 10);
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(8, 52, 18, 32, 8);
+      g.strokeRoundedRect(94, 52, 18, 32, 8);
+      g.strokeCircle(17, 88, 10);
+      g.strokeCircle(103, 88, 10);
+      // tuxedo torso
+      g.fillStyle(0x1a1a22, 1);
+      g.fillRoundedRect(26, 44, 68, 46, 10);
+      g.fillStyle(0xffffff, 1);
+      g.fillTriangle(60, 48, 48, 70, 72, 70);
       g.fillStyle(0xff2040, 1);
-      for (const [sx, sy] of [[40, 90], [82, 88], [60, 100], [95, 55], [25, 55]]) {
-        g.fillRect(sx, sy, 5, 5);
+      g.fillTriangle(54, 50, 60, 54, 54, 58);
+      g.fillTriangle(66, 50, 60, 54, 66, 58);
+      g.fillCircle(60, 54, 2.5);
+      // red sequins on the lapels
+      for (const [sx, sy] of [[34, 60], [86, 60], [32, 76], [88, 76], [60, 82]]) {
+        g.fillRect(sx, sy, 4, 4);
         g.fillStyle(0xffffff, 0.8);
         g.fillRect(sx, sy, 2, 2);
         g.fillStyle(0xff2040, 1);
       }
       g.lineStyle(4, INK, 1);
-      g.strokeCircle(60, 60, 52);
+      g.strokeRoundedRect(26, 44, 68, 46, 10);
+      // boar head
+      g.fillStyle(flesh, 1);
+      g.fillCircle(60, 26, 20);
+      g.fillStyle(0xffd0d8, 1);
+      g.fillEllipse(52, 18, 16, 10);
+      // ears
+      g.fillStyle(flesh, 1);
+      g.fillTriangle(44, 14, 38, 0, 52, 8);
+      g.fillTriangle(76, 14, 82, 0, 68, 8);
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(44, 14, 38, 0);
+      g.lineBetween(44, 14, 52, 8);
+      g.lineBetween(76, 14, 82, 0);
+      g.lineBetween(76, 14, 68, 8);
+      // snout + nostrils
+      g.fillStyle(dark, 1);
+      g.fillEllipse(60, 32, 24, 14);
+      g.fillStyle(INK, 1);
+      g.fillEllipse(54, 32, 3.5, 5);
+      g.fillEllipse(66, 32, 3.5, 5);
+      g.lineStyle(3, INK, 1);
+      g.strokeEllipse(60, 32, 24, 14);
+      // tusks curving up past the snout
+      g.fillStyle(PAL.teeth, 1);
+      g.fillTriangle(42, 36, 48, 36, 40, 18);
+      g.fillTriangle(78, 36, 72, 36, 80, 18);
+      g.lineStyle(2, INK, 1);
+      g.lineBetween(42, 36, 40, 18);
+      g.lineBetween(48, 36, 40, 18);
+      g.lineBetween(78, 36, 80, 18);
+      g.lineBetween(72, 36, 80, 18);
+      // furious eyes under a heavy brow
+      for (const ex of [49, 71]) {
+        g.fillStyle(0xffffff, 1);
+        g.fillCircle(ex, 18, 5.5);
+        g.fillStyle(INK, 1);
+        g.fillCircle(ex + 1, 19, 2.5);
+        g.fillStyle(0xff3d3d, 1);
+        g.fillCircle(ex + 1.5, 17.5, 1);
+        g.lineStyle(2, INK, 1);
+        g.strokeCircle(ex, 18, 5.5);
+      }
+      g.lineStyle(3, INK, 1);
+      g.lineBetween(42, 10, 56, 14);
+      g.lineBetween(78, 10, 64, 14);
+      g.lineStyle(4, INK, 1);
+      g.strokeCircle(60, 26, 20);
     });
 
-    // RALPH: Floor 2 frenzied gerbil. Giant fluffy brown ball, buck teeth,
-    // long tail, frenzy-red eyes. 120x120, feet at frame bottom.
+    // RALPH: Floor 2 frenzied gerbil. REARING BRUISER on two legs — fluffy
+    // brown muscle, buck teeth, long tail, frenzy-red eyes. 120x120, feet
+    // at frame bottom.
     this.stamp(['boss_ralph'], 120, 120, (g) => {
+      const fur = 0x9a6a42;
+      const tan = 0xd8bc8a;
       // long pink tail whipping left
       g.lineStyle(5, 0xe08a9a, 1);
       g.beginPath();
@@ -598,62 +654,90 @@ export class BootScene extends Phaser.Scene {
       g.beginPath();
       g.arc(22, 84, 13, Math.PI * 0.3, Math.PI * 1.5, false);
       g.strokePath();
-      // fluffy round mass
-      g.fillStyle(0x9a6a42, 1);
-      g.fillCircle(62, 62, 50);
-      g.fillStyle(0xc09a6a, 1);
-      g.fillEllipse(48, 46, 42, 28);
-      g.fillStyle(0xd8bc8a, 1);
-      g.fillEllipse(62, 82, 44, 24);
-      // fluff tufts
-      g.fillStyle(0x9a6a42, 1);
-      for (const [fx, fy] of [[20, 50], [16, 70], [100, 48], [104, 70], [62, 14]]) {
+      // big hind feet
+      g.fillStyle(0x6a4a2a, 1);
+      g.fillRoundedRect(34, 102, 18, 10, 4);
+      g.fillRoundedRect(68, 102, 18, 10, 4);
+      g.lineStyle(3, INK, 1);
+      g.strokeRoundedRect(34, 102, 18, 10, 4);
+      g.strokeRoundedRect(68, 102, 18, 10, 4);
+      // thick haunches
+      g.fillStyle(fur, 1);
+      g.fillEllipse(43, 92, 22, 18);
+      g.fillEllipse(77, 92, 22, 18);
+      g.lineStyle(3, INK, 1);
+      g.strokeEllipse(43, 92, 22, 18);
+      g.strokeEllipse(77, 92, 22, 18);
+      // barrel body + pale belly
+      g.fillStyle(fur, 1);
+      g.fillRoundedRect(30, 46, 60, 52, 16);
+      g.fillStyle(tan, 1);
+      g.fillEllipse(60, 74, 36, 26);
+      // flank fluff tufts
+      g.fillStyle(fur, 1);
+      for (const [fx, fy] of [[28, 56], [92, 56], [28, 76], [92, 76]]) {
         g.fillCircle(fx, fy, 7);
       }
       g.lineStyle(2, INK, 1);
-      for (const [fx, fy] of [[20, 50], [104, 70], [62, 14]]) {
+      for (const [fx, fy] of [[28, 56], [92, 76]]) {
         g.strokeCircle(fx, fy, 7);
       }
-      // round ears
-      g.fillStyle(0x9a6a42, 1);
-      g.fillCircle(40, 18, 9);
-      g.fillCircle(84, 18, 9);
-      g.fillStyle(0xe08a9a, 1);
-      g.fillCircle(40, 18, 4.5);
-      g.fillCircle(84, 18, 4.5);
-      g.lineStyle(3, INK, 1);
-      g.strokeCircle(40, 18, 9);
-      g.strokeCircle(84, 18, 9);
-      // frenzy-red eyes (impossibly wide scream-energy)
-      for (const ex of [46, 78]) {
-        g.fillStyle(0xffffff, 1);
-        g.fillCircle(ex, 52, 10);
-        g.fillStyle(PAL.ratEye, 1);
-        g.fillCircle(ex, 53, 6);
-        g.fillStyle(INK, 1);
-        g.fillCircle(ex, 53, 2.5);
-        g.lineStyle(2, INK, 1);
-        g.strokeCircle(ex, 52, 10);
+      // pumped arms + clawed paws (flexed)
+      g.fillStyle(fur, 1);
+      g.fillRoundedRect(12, 48, 16, 30, 7);
+      g.fillRoundedRect(92, 48, 16, 30, 7);
+      g.fillStyle(tan, 1);
+      g.fillCircle(20, 42, 9);
+      g.fillCircle(100, 42, 9);
+      g.fillStyle(INK, 1);
+      for (const [cx, cy] of [[16, 38], [24, 38], [96, 38], [104, 38]]) {
+        g.fillTriangle(cx - 2, cy, cx + 2, cy, cx, cy + 6);
       }
-      // nose + GIANT buck teeth
-      g.fillStyle(0xe08a9a, 1);
-      g.fillCircle(62, 64, 3);
-      g.fillStyle(PAL.teeth, 1);
-      g.fillRect(54, 70, 7, 16);
-      g.fillRect(63, 70, 7, 16);
-      g.lineStyle(2, INK, 1);
-      g.strokeRect(54, 70, 7, 16);
-      g.strokeRect(63, 70, 7, 16);
-      g.lineBetween(54, 78, 70, 78);
-      // stubby feet on the frame bottom
-      g.fillStyle(0x6a4a2a, 1);
-      g.fillRect(36, 106, 16, 8);
-      g.fillRect(72, 106, 16, 8);
       g.lineStyle(3, INK, 1);
-      g.strokeRect(36, 106, 16, 8);
-      g.strokeRect(72, 106, 16, 8);
+      g.strokeRoundedRect(12, 48, 16, 30, 7);
+      g.strokeRoundedRect(92, 48, 16, 30, 7);
+      g.strokeCircle(20, 42, 9);
+      g.strokeCircle(100, 42, 9);
       g.lineStyle(4, INK, 1);
-      g.strokeCircle(62, 62, 50);
+      g.strokeRoundedRect(30, 46, 60, 52, 16);
+      // head
+      g.fillStyle(fur, 1);
+      g.fillCircle(60, 28, 19);
+      g.fillStyle(0xc09a6a, 1);
+      g.fillEllipse(52, 20, 18, 12);
+      // round ears
+      g.fillStyle(fur, 1);
+      g.fillCircle(44, 10, 9);
+      g.fillCircle(76, 10, 9);
+      g.fillStyle(0xe08a9a, 1);
+      g.fillCircle(44, 10, 4.5);
+      g.fillCircle(76, 10, 4.5);
+      g.lineStyle(3, INK, 1);
+      g.strokeCircle(44, 10, 9);
+      g.strokeCircle(76, 10, 9);
+      // frenzy-red eyes (impossibly wide scream-energy)
+      for (const ex of [52, 68]) {
+        g.fillStyle(0xffffff, 1);
+        g.fillCircle(ex, 24, 7);
+        g.fillStyle(PAL.ratEye, 1);
+        g.fillCircle(ex, 25, 4.5);
+        g.fillStyle(INK, 1);
+        g.fillCircle(ex, 25, 2);
+        g.lineStyle(2, INK, 1);
+        g.strokeCircle(ex, 24, 7);
+      }
+      // nose + GIANT buck teeth below the muzzle
+      g.fillStyle(0xe08a9a, 1);
+      g.fillCircle(60, 33, 3);
+      g.fillStyle(PAL.teeth, 1);
+      g.fillRect(53, 37, 7, 12);
+      g.fillRect(62, 37, 7, 12);
+      g.lineStyle(2, INK, 1);
+      g.strokeRect(53, 37, 7, 12);
+      g.strokeRect(62, 37, 7, 12);
+      g.lineBetween(53, 43, 69, 43);
+      g.lineStyle(4, INK, 1);
+      g.strokeCircle(60, 28, 19);
     });
 
     // PRELEVEL — Seattle skyline at the end of the world. 1600x320:

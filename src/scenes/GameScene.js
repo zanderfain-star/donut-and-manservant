@@ -6,7 +6,7 @@ import { SpriteFactory } from '../entities/SpriteFactory.js';
  *
  * One run, three zones:
  *   ENTRY TUNNELS (0–2000, goblins+rats) → THE GARBAGE (2000–4200, tinkers)
- *   → THE GYM (4200–6000, trogs) → BALL OF SWINE (borough boss) → stairs.
+ *   → THE GYM (4200–6000, trogs) → BARON SWINE (borough boss) → stairs.
  *   Zones are mob-identified per DCC Book 1 canon — no throne room here.
  *
  * Ownership note: MenuScene / UIScene / BootScene / SpriteFactory are owned by
@@ -143,7 +143,7 @@ const FLOORS = {
       [5520, 'GY', 'crystal'], [5650, 'GY', 'box'], [5780, 'GY', 'star'],
     ],
     boss: {
-      type: 'swine', name: 'BALL OF SWINE', sub: '★ BOROUGH BOSS ★ PORKCHOP EXPRESS',
+      type: 'swine', name: 'BARON SWINE', sub: '★ BOROUGH BOSS ★ PORKCHOP EXPRESS',
       roar: 'REEEEE!', roarToast: 'REEEEE! The Porkchop Express never stops!',
       killToast: 'THIS LITTLE PIGGY WENT TO MARKET',
     },
@@ -461,8 +461,9 @@ const ENEMY_TYPES = {
   rat: { hp: 1, speed: 200, score: 40, scale: 0.8, tint: 0xffffff, label: 'RAT', tex: 'enemy_rat', feet: 24, body: [46, 22], off: [5, 30] },
   // JEFF (F5 test dummy): straw, harmless, respawns, shows HP pips.
   dummy: { hp: 6, speed: 0, score: 0, scale: 1.0, tint: 0xffffff, label: 'JEFF', tex: 'dummy', feet: 30, body: [36, 56], off: [10, 6] },
-  // BALL OF SWINE — Floor 1 borough boss. Rolls the arena, max 2 dmg/hit.
-  swine: { hp: 12, speed: 55, score: 1000, scale: 1.0, tint: 0xffffff, label: 'BALL OF SWINE', tex: 'boss_swine', feet: 58, body: [90, 100], off: [15, 18] },
+  // BARON SWINE — Floor 1 borough boss. Tuxedo boar bruiser, stalks the
+  // arena on foot and lunges, max 2 dmg/hit.
+  swine: { hp: 12, speed: 55, score: 1000, scale: 1.0, tint: 0xffffff, label: 'BARON SWINE', tex: 'boss_swine', feet: 58, body: [90, 100], off: [15, 18] },
   // RALPH — Floor 2 frenzied gerbil. Faster, frailer, same porkchop energy.
   ralph: { hp: 8, speed: 95, score: 1500, scale: 1.0, tint: 0xffffff, label: 'RALPH', tex: 'boss_ralph', feet: 58, body: [90, 100], off: [15, 18] },
   // DREK — knee-high demonic infant. Fast, weak, swarms in 3-4.
@@ -846,8 +847,12 @@ export class GameScene extends Phaser.Scene {
   buildPlatforms() {
     // [x, y, w, h] — y is the TOP of the 8px step; visual slab hangs below.
     // All tops at y >= 455 (reachable: jump 720 / gravity 1400 ≈ 185px rise).
-    // Walk-under steps (y=580) sit above Carl's body top (y=570 on floor).
-    const platformDefs = FLOORS[this.floor].platforms;
+    // No super-low walk-under traps: lowest top is 540 (100px headroom, so
+    // baddies never wedge under a slab). Boss stair-arenas (x>5350) stay
+    // flat floor so bosses never get stuck either.
+    let platformDefs = FLOORS[this.floor].platforms;
+    if (this.bossType) platformDefs = platformDefs.filter(([x]) => x <= 5350);
+    platformDefs = platformDefs.map(([x, y, w, h]) => [x, Math.min(y, 540), w, h]);
     this.platformTops = [];
     for (const [x, y, w, h] of platformDefs) {
       const step = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0);
@@ -1478,6 +1483,10 @@ export class GameScene extends Phaser.Scene {
         } else {
           this.patrolMove(e);
         }
+        // Hop out when walled in so lobbers never wedge under a slab.
+        if (e.body.blocked.down && (e.body.blocked.left || e.body.blocked.right)) {
+          e.body.setVelocityY(-500);
+        }
         // Lob a spit on a timer when Carl is in range.
         e.spitTimer -= dt * 1000;
         if (e.spitTimer <= 0 && Math.abs(dx) < 520 && !this.dead && !this.won) {
@@ -1485,19 +1494,38 @@ export class GameScene extends Phaser.Scene {
           e.spitTimer = e.spitCdBase || 2200 + Math.random() * 800;
         }
       } else if (e.etype === this.bossType) {
-        // Boss express: never stops. Rolls at Carl, penned to the
-        // stair arena (5400–6010) so it can't leave its lair.
+        // Character boss: stalks Carl on foot, penned to the flat stair
+        // arena (5400–6010) so it can't leave its lair. Lunges when close.
         let dir = Math.sign(dx) || 1;
         if (e.x < 5420) dir = 1;
         else if (e.x > 6000) dir = -1;
-        e.body.setVelocityX(dir * e.speed);
-        e.angle += dir * 130 * dt; // roll!
+        e.angle = 0; // upright — no more rolling
+        e.lungeT = (e.lungeT || 0) - dt * 1000;
+        if (e.body.blocked.down && e.lungeT <= 0 && Math.abs(dx) < 340 && Math.abs(dx) > 40 && !this.dead && !this.won) {
+          e.body.setVelocityY(-520);
+          e.body.setVelocityX(dir * (e.speed + 170));
+          e.lungeT = 1800 + Math.random() * 900;
+        } else {
+          e.body.setVelocityX(dir * e.speed);
+        }
+        e.setFlipX(dir < 0);
       } else {
-        this.patrolMove(e);
+        // Ground pattern: chase-hop when Carl is above and near (climbs
+        // platforms after him), wall-hop when penned, turnaround hops
+        // from patrolMove keep the bounce beat.
+        const grounded = e.body.blocked.down;
+        if (grounded && Math.abs(dx) < 230 && py < e.y - 70 && !this.dead && !this.won) {
+          e.body.setVelocityY(-560);
+          e.body.setVelocityX(Math.sign(dx || 1) * e.speed * 1.25);
+        } else {
+          this.patrolMove(e);
+          if (grounded && (e.body.blocked.left || e.body.blocked.right)) {
+            e.body.setVelocityY(-540);
+          }
+        }
       }
 
       // Face the player when close, else face patrol direction.
-      // (Bosses are balls — they roll instead of facing.)
       if (e.etype !== this.bossType) {
         if (Math.abs(dx) < 220) e.setFlipX(dx < 0);
         else e.setFlipX(e.patrolDir < 0);
@@ -1515,7 +1543,6 @@ export class GameScene extends Phaser.Scene {
         if (e.halo) e.halo.destroy();
         e.destroy();
       }
-      void py;
     });
   }
 
@@ -1535,9 +1562,13 @@ export class GameScene extends Phaser.Scene {
 
   patrolMove(e) {
     const target = e.patrolHomeX + e.patrolDir * e.patrolRange;
-    if (e.patrolDir === 1 && e.x >= target) e.patrolDir = -1;
-    else if (e.patrolDir === -1 && e.x <= target) e.patrolDir = 1;
+    let turned = false;
+    if (e.patrolDir === 1 && e.x >= target) { e.patrolDir = -1; turned = true; }
+    else if (e.patrolDir === -1 && e.x <= target) { e.patrolDir = 1; turned = true; }
     e.body.setVelocityX(e.patrolDir * e.speed);
+    // Hop at each turnaround: patrollers bounce a visible beat instead of
+    // sliding back and forth.
+    if (turned && e.body.blocked.down) e.body.setVelocityY(-460);
   }
 
   enemySpit(e, dx) {
